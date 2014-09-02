@@ -1,0 +1,53 @@
+\name{InfoGraphics}
+\alias{wheel}
+\alias{seasevol}
+\alias{vis}
+\alias{diagram}
+\alias{cumugram}
+\alias{climvar}
+\title{InfoGraphics.}
+\alias{colscal}
+\description{
+  Wheel
+
+  Risk
+
+  prob - boxes with forseen outcomes - area proportional to probability
+
+  conf - confidence intervals and uncertainty - clouds...
+
+  vis
+
+  diagram
+
+  cumugram
+}
+\usage{
+climvar(x,FUN=sd,plot=TRUE,...)
+colscal(col="bwr",n=100,test=FALSE)
+cumugram(x,it=NULL,...)
+wheel(x,...)
+wheel.station(x,lwd=2,col=NULL...)
+wheel.spell(x,lwd=2,col=NULL...)
+seasevol(x,...)
+seasevol.station(x,it=NULL,nv=25,...)
+}
+\arguments{
+
+ }
+\value{A field object}
+
+\seealso{
+  \code{\link{map}}, \code{\link{plot.station}}, \code{\link{hist.spell}}  
+}
+
+\author{R.E. Benestad and A.  Mezghanil}
+\examples{
+data(bjornholt)
+wheel(bjornholt)
+
+z <- spell(bjornholt)
+wheel(spell,dry=TRUE)
+
+}
+\keyword{utilities}
