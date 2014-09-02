@@ -18,10 +18,15 @@ CCA.eof <- function(Y,X,i.eofs=1:8) {
   history <- attr(X,'history')
   Z <- Y
   cls <- class(Y)
-  
+
+  if (inherits(index(Y),c('numeric','integer')))
+    index(Y) <- as.Date(paste(index(Y),'01-01',sep='-'))
+  if (inherits(index(X),c('numeric','integer')))
+    index(X) <- as.Date(paste(index(X),'01-01',sep='-'))
   # Synchronise the two time series objects:
   y <- zoo(coredata(Y),order.by=as.Date(format(index(Y),'%Y-%m-01')))
   x <- zoo(coredata(X),order.by=as.Date(format(index(X),'%Y-%m-01')))
+  
   oky <- is.finite(rowMeans(Y)); okx <- is.finite(rowMeans(X))
   #print(length(oky))
   y <- y[oky,]; x <- x[okx,]

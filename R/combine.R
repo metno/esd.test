@@ -5,16 +5,39 @@
 
 zeros <- function(x) (sum(is.infinite(1/x)) > 0)
 
+rbind.field <- function(...) {
+  print('note: the results inerit the metadata from the first argument')
+  x <- list(...)
+  y <- rbind.zoo(...)
+  y <- attrcp(x[[1]],y)
+  attr(y,'dimensions') <- c(attr(x[[1]],'dimensions')[1:2],length(index(y)))
+  attr(y,'history') <- history.stamp(x[[1]])
+  class(y) <- class(x[[1]])
+  return(y)
+}
+
+cbind.field <- function(...) {
+  x <- list(...)
+  y <- cbind.zoo(...)
+  print('unfinished - need to combine the attributes from all inputs')
+  y <- attrcp(x[[1]],y)
+  attr(y,'history') <- history.stamp(x[[1]])
+  class(y) <- class(x[[1]])
+  return(y)
+}
+
+
 combine <- function(x,y,...)
   UseMethod("combine")
 
 combine.default <- function(x=NULL,y=NULL,all=FALSE,orig.format=TRUE) {
   # If either of the arguments is NULL, then return the x - useful for looping
   stopifnot(!missing(x))
+  #print("combine.default")
   if (is.null(x)) return(y)
   if (is.null(y)) return(x)
   
-  print(class(x)); print(class(y)); print(summary(x))
+  #print(class(x)); print(class(y)); print(summary(x))
   #print("dim(y)="); print(dim(y))
   
   if ( !zeros(c(inherits(x,c("station","zoo"),which=TRUE),
@@ -225,7 +248,8 @@ combine.ds <- function(...,all=TRUE) {
         d <- dim(pattern)
         dim(pattern) <- c(1,d[1]*d[2])
         # REB - also capture the diagnostics - from the commone EOF
-        if (!is.null(attr(eof,'diagnose'))) diag <- list(s.1=attr(eof,'diagnose'))
+        if (!is.null(attr(eof,'diagnose')))
+          diag <- list(s.1=attr(eof,'diagnose'))
       } else {
         argsx <- paste(argsx,",x.",i,sep="")
         argsy <- paste(argsy,",y.",i,sep="")
@@ -449,20 +473,24 @@ combine.station.eof <- function(x,y,all=FALSE,orig.format=TRUE) {
   dx <- dim(x)
   if (is.null(dx)) dx <- c(length(x),1)
   if (dx[2]>1) colnames(x) <- paste("x",1:dx[2],sep=".") 
-  comb <- merge(x,y,all=all)
     
   if (orig.format) {
+    comb <- merge(x,y,all=all)
     vars <- tolower(names(comb))
     ys <- vars[grep('y',vars)]
     Xs <- vars[grep('x',vars)]
     ix <- is.element(vars,Xs)
     iy <- is.element(vars,ys)
-    
+
     XX <- zoo(coredata(comb[,ix]),order.by=index(comb))
-    yy <- zoo(coredata(comb[,iy]),order.by=index(comb))
+    yy <- zoo(comb[,iy],order.by=index(comb))
 
     XX <- attrcp(x,XX,ignore='names')
     yy <- attrcp(y,yy,ignore='names')
+
+  
+    # REB 29.04.2014
+    
  #   nattr1 <- softattr(y)
  #   for (i in 1:length(nattr1))
  #     attr(yy,nattr1[i]) <- attr(y,nattr1[i])
@@ -475,12 +503,33 @@ combine.station.eof <- function(x,y,all=FALSE,orig.format=TRUE) {
     
     X <- list(y=yy,X=XX)
   } else {
+    # REB 29.04.2014
+    # This option introdices an additional index in the PCs and
+    # and additional uniform pattern.
+    comb <- merge(y,x,all=all)
+
+    prowser()
+    d <- dim(y)
+    if (is.null(d)) {
+      s <- sd(y,na.rm=TRUE)
+      z <- ( coredata(y) - mean(y,na.rm=TRUE) )/s
+    } else {
+      s <- apply(y,2,sd,na.rm=TRUE)
+      m <- apply(y,2,mean,na.rm=TRUE)
+      z <- ( coredata(y) -  m )/s
+    }
+    coredata(y) <- z
+    comb <- merge(y,x,all=all)
+   
     X <- comb
 #    nattr1 <- softattr(x)
 #    for (i in 1:length(nattr1))
 #      attr(X,nattr1[i]) <- attr(x,nattr1[i])
     X <- attrcp(x,X,ignore='names')
+    attr(X,'pattern') <- rbind(matrix(rep(s,d[1]*d[2]),d[1],d[2]),
+                               attr(X,'pattern'))
     attr(X,'X.attributes') <- attributes(y)
+    class(X) <- class(x)
   }
   #print(summary(combined))
   attr(X,'history') <- history.stamp(X)
@@ -592,6 +641,17 @@ combine.field <- function(x,y,all=FALSE,dimension="time",
             inherits(x,'field'),inherits(y,'field'))
   clsx <- class(x); clsy <- class(y)
   hst <- c(attr(x,'history'),attr(y,'history'))
+  if ( (unit(x)=="hPa") & (unit(x)=="hPa")) {
+    coredata(x) <- 100*coredata(x)
+    attr(x,'unit') <- 'Pa'
+  }
+  if ( (unit(y)=="hPa") & (unit(y)=="hPa")) {
+    coredata(y) <- 100*coredata(y)
+    attr(y,'unit') <- 'Pa'
+  }
+  if (unit(x) != unit(y))
+    print(paste('Warning - different units:',unit(x),unit(y)))
+
   
   if (missing(y)) return(x)
 

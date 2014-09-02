@@ -42,6 +42,7 @@ trend.one.station <- function(x,result="trend",model="y ~ t",...) {
   attr(y,'coefficients') <- xt$coefficients
   attr(y,'original data') <-  x
   attr(y,'aspect') <- result
+  attr(y,'lm') <- xt
   #attr(y,'call') <- match.call()
   y <- attrcp(x,y,ignore='aspect')
   attr(y,'history') <- history.stamp(x)
@@ -104,6 +105,7 @@ trend.eof <- function(x,result="trend",model="y ~ t",...) {
   #  attr(Y,nattr[i]) <- attr(x,nattr[i])
   #mostattributes(Y) <- attributes(x)
   attr(Y,'coefficients') <- coefficients
+  attr(Y,'lm') <- xt
   attr(Y,'original data') <-  x
   #attr(Y,'call') <- match.call()
   Y <- attrcp(x,Y)
@@ -183,6 +185,7 @@ trend.zoo <- function(x,result="trend",model="y ~ t",...) {
   attr(y,'history') <- history.stamp(x)
   if (!is.null(attr(x,'unit'))) unit <- attr(x,'unit') else
                                 unit <- 'x'
+  attr(y,'lm') <- xt
   attr(y,'unit') <- paste(unit,'/ year')
   return(y)
   invisible(y)

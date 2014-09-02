@@ -30,7 +30,7 @@ if (is.character(ncfile)) {
    ncid <- open.ncdf(ncfile)     
 } else if (class(ncfile) == "ncdf") ncid <- ncfile else stop("ncfile format should be a valid netcdf filename or a netcdf id of class 'ncdf'")  
 # Read and put attributes in model
-browser()
+#browser()
 model <- att.get.ncdf(ncid,0)
 # Get variable attributes in v1
 namevars <- names(ncid$var)

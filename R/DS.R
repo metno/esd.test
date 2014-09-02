@@ -17,7 +17,7 @@
 # Needs to work also for daily, annual and seasonal data
 #
 
-sametimescale <- function(y,X,FUN=mean) {
+sametimescale <- function(y,X,FUN='mean') {
   # Function to ensure that station y has the same time scales as X
   tsx <- class(X)[length(class(X))-1]
   tsy <- class(y)[length(class(y))-1]
@@ -45,7 +45,7 @@ DS<-function(y,X,verbose=TRUE,...) UseMethod("DS")
 
 DS.default <- function(y,X,mon=NULL,
                        method="lm",swsm="step",
-                       rmtrend=TRUE,eofs=1:7,
+                       rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                        verbose=FALSE,...) {
 
   if (verbose) print("DS.default")
@@ -58,20 +58,25 @@ DS.default <- function(y,X,mon=NULL,
   }
   stopifnot(!missing(y),!missing(X), is.matrix(X),
             inherits(X,"eof"),inherits(y,"station"))
-
-    
+  
   y0 <- y
   X0 <- X 
   W <- attr(X,'eigenvalues')
   cls <- class(X)
   #print("index(y):");print(index(y)[1:24])
   
-  if ( (is.character(index(y))) & (nchar(index(y)[1])==4) ) index(y) <- as.numeric(index(y))
-  if ( (is.character(index(X))) & (nchar(index(X)[1])==4) ) index(X) <- as.numeric(index(y))
-  if ( (is.character(index(y))) & (nchar(index(y)[1])==10) ) index(y) <- as.Date(index(y))
-  if ( (is.character(index(X))) & (nchar(index(X)[1])==10) ) index(X) <- as.Date(index(y))
-  if (class(index(y))=="numeric") index(y) <- as.Date(paste(index(y),'-01-01',sep=''))
-  if (class(index(X))=="numeric") index(X) <- as.Date(paste(index(X),'-01-01',sep=''))
+  if ( (is.character(index(y))) & (nchar(index(y)[1])==4) )
+    index(y) <- as.numeric(index(y))
+  if ( (is.character(index(X))) & (nchar(index(X)[1])==4) )
+    index(X) <- as.numeric(index(y))
+  if ( (is.character(index(y))) & (nchar(index(y)[1])==10) )
+    index(y) <- as.Date(index(y))
+  if ( (is.character(index(X))) & (nchar(index(X)[1])==10) )
+    index(X) <- as.Date(index(y))
+  if (class(index(y))=="numeric")
+    index(y) <- as.Date(paste(index(y),'-01-01',sep=''))
+  if (class(index(X))=="numeric")
+    index(X) <- as.Date(paste(index(X),'-01-01',sep=''))
   
   y <- sametimescale(y,X)
   #print("index(y):");print(index(y)[1:24])
@@ -174,6 +179,7 @@ DS.default <- function(y,X,mon=NULL,
   attr(ds,'longitude') <- attr(y0,'longitude')
   attr(ds,'latitude') <- attr(y0,'latitude')
   #attr(ds,'source') <- paste(attr(y0,'source'),attr(X0,'source'),sep="-")
+  attr(ds,'aspect') <- 'downscaled'
   attr(ds,'source') <- attr(X0,'source')
   attr(ds,'type') <- "downscaled results"
   attr(ds,'history.predictand') <- attr(y0,'history')
@@ -190,12 +196,13 @@ DS.default <- function(y,X,mon=NULL,
 
 DS.eof <- function(X,y,mon=NULL,
                    method="lm",swsm="step",
-                   rmtrend=TRUE,eofs=1:7,
+                   rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                    verbose=FALSE,pca=TRUE,...) {
   #if (verbose) print("DS.eof")
   ds <- DS.default(y,X,mon=mon,
                    method=method,swsm=swsm,
                    rmtrend=rmtrend,eofs=eofs,
+                   area.mean.expl=area.mean.expl,
                    verbose=verbose,...)
   return(ds)
 }
@@ -204,7 +211,7 @@ DS.eof <- function(X,y,mon=NULL,
 
 DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
                    method="lm",swsm="step",
-                   rmtrend=TRUE,eofs=1:7,
+                   rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                    verbose=FALSE,pca=FALSE,npca=20,...) {
   
   stopifnot(!missing(y),!missing(X),inherits(y,"station"))
@@ -217,7 +224,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
     ds <- DS.field(y=y,X=X,biascorrect=biascorrect,mon=mon,
                   method=method,swsm=swsm,
                   rmtrend=rmtrend,eofs=eofs,
-                  verbose=verbose,...) 
+                  area.mean.expl=area.mean.expl,verbose=verbose,...) 
     return(ds)
   }
 
@@ -257,7 +264,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
           ds <- DS.comb(y=z,X=X,biascorrect=biascorrect,mon=mon,
                         method=method,swsm=swsm,
                         rmtrend=rmtrend,eofs=eofs,
-                        verbose=verbose,...)
+                        area.mean.expl=area.mean.expl,verbose=verbose,...)
           if (verbose) print("---")
       } else if (inherits(X,'eof')) {
         if (verbose) print("*** EOF ***")
@@ -265,6 +272,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
           ds <- DS.default(y=z,X=X,mon=mon,
                            method=method,swsm=swsm,
                            rmtrend=rmtrend,eofs=eofs,
+                           area.mean.expl=area.mean.expl,
                            verbose=verbose,...)
           if (verbose) print("+++")
       }
@@ -274,7 +282,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
           ds <- DS.field(y=z,X=X,biascorrect=biascorrect,mon=mon,
                    method=method,swsm=swsm,
                    rmtrend=rmtrend,eofs=eofs,
-                   verbose=verbose,...)
+                   area.mean.expl=area.mean.expl,verbose=verbose,...)
     }
     # May need an option for coombined field: x is 'field' + 'comb'
     if (verbose) print("Cross-validation")
@@ -311,7 +319,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
 
 DS.comb <- function(X,y,biascorrect=FALSE,mon=NULL,
                     method="lm",swsm="step",
-                    rmtrend=TRUE,eofs=1:7,
+                    rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                     verbose=FALSE,...) {
 
   if (verbose) print("DS.comb")
@@ -331,7 +339,8 @@ DS.comb <- function(X,y,biascorrect=FALSE,mon=NULL,
   # use the model n times to predict the values associated with the
   # appended fields:
 
-  if (!inherits(X,"eof")) X <- EOF(X,mon=mon)
+  
+  if (!inherits(X,"eof")) X <- EOF(X,mon=mon,area.mean.expl=area.mean.expl)
   
   
   if (biascorrect) {
@@ -342,7 +351,7 @@ DS.comb <- function(X,y,biascorrect=FALSE,mon=NULL,
   ds <- DS.eof(X,y,mon=mon,
                method=method,swsm=swsm,
                rmtrend=rmtrend,eofs=eofs,
-               verbose=verbose,...)
+               area.mean.expl=area.mean.expl,verbose=verbose,...)
 
   # For combined fields, make sure to add the appended PCs to
   # the results.
@@ -375,7 +384,7 @@ DS.comb <- function(X,y,biascorrect=FALSE,mon=NULL,
 
 DS.field <- function(X,y,biascorrect=FALSE,mon=NULL,
                      method="lm",swsm="step",
-                     rmtrend=TRUE,eofs=1:7,
+                     rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                      verbose=FALSE,...) {
   if (verbose) print("DS.field")
   # Keep track of which is an eof object and which is a station record:
@@ -394,22 +403,25 @@ DS.field <- function(X,y,biascorrect=FALSE,mon=NULL,
       ds <- DS.t2m.month.field(y=y,X=X,biascorrect=biascorrect,
                          mon=mon,method=method,swsm=swsm,
                          rmtrend=rmtrend,eofs=eofs,
+                         area.mean.expl=area.mean.expl,
                          verbose=verbose,...) else
     if (inherits(X,'season')) 
       ds <- DS.t2m.season.field(y=y,X=X,biascorrect=biascorrect,
                          method=method,swsm=swsm,
                          rmtrend=rmtrend,eofs=eofs,
+                         area.mean.expl=area.mean.expl,
                          verbose=verbose,...) else
     if (inherits(X,'annual')) 
       ds <- DS.t2m.annual.field(y=y,X=X,biascorrect=biascorrect,
                          method=method,swsm=swsm,
                          rmtrend=rmtrend,eofs=eofs,
+                         area.mean.expl=area.mean.expl,
                          verbose=verbose,...)
   } else if (tolower(attr(y,'variable'))=='precip')
     ds <- DS.precip.season.field(y=y,X=X,biascorrect=biascorrect,
                        method=method,swsm=swsm,
                        rmtrend=rmtrend,eofs=eofs,
-                       verbose=verbose,...)
+                       area.mean.expl=area.mean.expl,verbose=verbose,...)
   invisible(ds)
 }
 
@@ -419,7 +431,7 @@ DS.field <- function(X,y,biascorrect=FALSE,mon=NULL,
 # and compute the EOFs before applying the default DS method.
 DS.t2m.month.field <- function(y,X,biascorrect=FALSE,mon=NULL,
                           method="lm",swsm="step",
-                          rmtrend=TRUE,eofs=1:7,
+                          rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                           verbose=FALSE,station=TRUE) {
   if (verbose) print("DS.t2m.month.field")
   if (inherits(X,'comb')) type <- 'eof.comb' else type <- "eof.field"
@@ -430,11 +442,12 @@ DS.t2m.month.field <- function(y,X,biascorrect=FALSE,mon=NULL,
   
   for (i in mon) {
     #print(month.name[i])
-    eof <- EOF(X,it=i)
+    eof <- EOF(X,it=i,area.mean.expl=area.mean.expl)
     if (biascorrect) eof <- biasfix(eof)
     cline <- paste("ds$",month.abb[i],
                  "<- DS.station(y,eof,method=method,swsm=swsm,",
-                 "rmtrend=rmtrend,eofs=eofs,verbose=verbose)",
+                 "rmtrend=rmtrend,eofs=eofs,",
+                 "area.mean.expl=area.mean.expl,verbose=verbose)",
                  sep="")
     if (verbose) print(cline)
     eval(parse(text=cline))
@@ -457,7 +470,7 @@ DS.t2m.month.field <- function(y,X,biascorrect=FALSE,mon=NULL,
 
 DS.t2m.season.field <- function(y,X,biascorrect=FALSE,
                           method="lm",swsm="step",
-                          rmtrend=TRUE,eofs=1:7,
+                          rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                           verbose=FALSE,station=TRUE) {
   # Downscale seasonal mean and standard deviation
   if (verbose) print("DS.t2m.season.field")
@@ -466,29 +479,35 @@ DS.t2m.season.field <- function(y,X,biascorrect=FALSE,
   #y.mean <- aggregate(as.4season(ya,FUN="mean"))
   #y.sd <- aggregate(as.4season(ya,FUN="sd"))
   #X.4s <- aggregate(as.4season(X,FUN="mean"))
-  
-  Z1 <- EOF(X,it=1)
+  #str(X); browser()
+  Z1 <- EOF(subset(X,it='djf'),area.mean.expl=area.mean.expl)
   if (verbose) print("downscale DJF")
-  ds1 <- DS(y,Z1,biascorrect=biascorrect)
-  Z2 <- EOF(X,it=2)
+  ds1 <- DS(y,Z1,biascorrect=biascorrect,eofs=eofs)
+  Z2 <- EOF(subset(X,it='mam'),area.mean.expl=area.mean.expl)
   if (verbose) print("downscale MAM")
-  ds2 <- DS(y,Z2,biascorrect=biascorrect)
-  Z3 <- EOF(X,it=3)
+  ds2 <- DS(y,Z2,biascorrect=biascorrect,eofs=eofs)
+  Z3 <- EOF(subset(X,it='jja'),area.mean.expl=area.mean.expl)
   if (verbose) print("downscale JJA")
-  ds3 <- DS(y,Z3,biascorrect=biascorrect)
-  Z4 <- EOF(X,it=4)
+  ds3 <- DS(y,Z3,biascorrect=biascorrect,eofs=eofs)
+  
+#  load('control.ds.1.rda'); Z3x <- EOF(PREGCM,area.mean.expl=area.mean.expl)
+#  ds3 <- DS(y,Z3x,biascorrect=biascorrect,eofs=eofs)
+  
+  Z4 <- EOF(subset(X,it='son'),area.mean.expl=area.mean.expl)
   if (verbose) print("downscale SON")
-  ds4 <- DS(y,Z4,biascorrect=biascorrect)
+  ds4 <- DS(y,Z4,biascorrect=biascorrect,eofs=eofs)
   if (verbose) print("Combine the 4 seasons")
   ds <- combine(list(ds1,ds2,ds3,ds4))
   z <- c(crossval(ds1),crossval(ds2),crossval(ds3),crossval(ds4))
   attr(ds,'evaluation') <- z
+  save(file='inside.ds.seas.f.1.rda',y,Z1,ds1,Z2,ds2,Z3,ds3,Z4,ds4,X)
+  #browser()
   invisible(ds)
 }
 
 DS.t2m.annual.field <- function(y,X,biascorrect=FALSE,
                           method="lm",swsm="step",
-                          rmtrend=TRUE,eofs=1:7,
+                          rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                           verbose=FALSE,station=TRUE) {
   # Downscale seasonal mean and standard deviation
   if (verbose) print("DS.t2m.annual.field")
@@ -498,7 +517,7 @@ DS.t2m.annual.field <- function(y,X,biascorrect=FALSE,
   #y.sd <- aggregate(as.4season(ya,FUN="sd"))
   #X.4s <- aggregate(as.4season(X,FUN="mean"))
   
-  Z <- EOF(X)
+  Z <- EOF(X,area.mean.expl=area.mean.expl)
   ds <- DS(y,Z,biascorrect=biascorrect)
   invisible(ds)
 }
@@ -507,7 +526,7 @@ DS.t2m.annual.field <- function(y,X,biascorrect=FALSE,
 
 DS.precip.season.field <- function(y,X,biascorrect=FALSE,threshold=1,
                                    method="lm",swsm="step",
-                                   rmtrend=TRUE,eofs=1:7,
+                                   rmtrend=TRUE,eofs=1:7,area.mean.expl=FALSE,
                                    verbose=FALSE,...) {
 
   # Computes the annual mean values for wet-day mean mu, wet-day frequency, and spell.
@@ -521,7 +540,7 @@ DS.precip.season.field <- function(y,X,biascorrect=FALSE,threshold=1,
   if (!inhetits(X,'season')) X <- as.4seasons(X)
 
   for (i in 1:4) {
-    x <- EOF(X,it=i)
+    x <- EOF(X,it=i,area.mean.expl=area.mean.expl)
     if (biascorrect) x <- biasfix(x)
     ds.mu <- DS.default(mu,x,method=method,swsm=swsm,
                         rmtrend=rmtrend,eofs=eofs,
@@ -671,7 +690,10 @@ biasfix <- function(x) {
     eval(parse(text=paste("z <- attr(x,'appendix.",i,"')",sep="")))
     Z <- coredata(z)
     #print(dim(Z)); print(length(diag$sd.ratio)); print(length(diag$mean.diff))
-    for (j in 1:length(Z[1,])) Z[,j] <- Z[,j]/diag$sd.ratio[i,j] + diag$mean.diff[i,j]
+    # diagnose: (1 + sd(z))/(1 + sd(x))
+    # x is reanalysis; z is gcm:
+    for (j in 1:length(Z[1,]))
+      Z[,j] <- Z[,j]/diag$sd.ratio[i,j] + diag$mean.diff[i,j]
     y <- zoo(Z,order.by=index(z))
     y <- attrcp(z,y)
     eval(parse(text=paste("y -> attr(x,'appendix.",i,"')",sep="")))

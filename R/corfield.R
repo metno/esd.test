@@ -150,7 +150,7 @@ corfield.field.station <- function(x,y,plot=TRUE,
 }
 
 
-corfield.station <- function(x,y,plot=TRUE,use='pairwise.complete.obs',...) {
+corfield.station <- function(x,y,plot=TRUE,use='pairwise.complete.obs',na.action='na.omit',...) {
   #print("corfield.station:")
   # Keep track of which is an eof object and which is a station record:
   nval <- function(x) sum(is.finite(x))
@@ -170,12 +170,27 @@ corfield.station <- function(x,y,plot=TRUE,use='pairwise.complete.obs',...) {
     print("Warning in corfield.station: aggregated y to monthly values.")
   }
 
+#  arg <- list(...)
+#  ina <- grep('na.action',names(arg))
+#  if (length(ina)==1) {
+  if (na.action=='na.omit') {
+      ok <- is.finite(rowSums(y))
+      y <- subset(y,it=range(year(y)[ok]))
+    }
+#    arg[[-ina]] -> list(...)
+#  }
+  
   #print("HERE")
   #print(length(x)); print(dim(y))
   #yx <- combine(x,y,all=FALSE)
     #y <- yx$y; x <- yx$X
   ngood <- apply(coredata(y),2,nval)
   ok <- ngood == length(index(y))
+  if (sum(ok)==0) {
+    print('Problem with missing data. Try with the following argument')
+    print('na.action="na.omit"')
+    stop()
+  }
   #print(table(ngood)); print(sum(ok))
   yok <- y[,ok]
   #print(table(apply(coredata(yok),2,nval)))
@@ -219,5 +234,11 @@ corfield.station <- function(x,y,plot=TRUE,use='pairwise.complete.obs',...) {
   invisible(r)
 }
 
-
+corfield.eof <- function(x,y,pattern=1,plot=TRUE,
+                         use='pairwise.complete.obs',na.action='na.omit',...) {
+  stopifnot(inherits(x,'eof'),inherits(y,'field'))
+  z <- as.station(x[,pattern],loc=paste('eof',pattern),param='PC',unit='dimensionless')
+  r <- corfield(z,y,plot=plot,use=use,na.action=na.action)
+  invisible(r)
+}
 

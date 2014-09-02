@@ -83,7 +83,7 @@ spell.station <-  function(x,threshold,upper=150,...) {
 
 
 count <- function(x,threshold=1,fraction=FALSE) {
-  count <- sum(x >= threshold,na.rm=TRUE)
+  count <- sum(x > threshold,na.rm=TRUE)
   if (fraction) count <- count/sum(is.finite(x))
   return(count)
 }
@@ -106,13 +106,20 @@ wetmean <- function(x,threshold=1) {
 # Exceedance is a function that 
 exceedance <- function(x,threshold=1,fun='mean',...) UseMethod("exceedance")
 
-exceedance.default <- function(x,threshold=1,fun='mean',...) {
+exceedance.default <- function(x,threshold=1,fun='mean',na.rm=TRUE,...) {
   #print("HERE");  str(x)
-  X <- x[x >= threshold]
+  X <- x[x > threshold]
+  yrs <- year(x); d <- dim(x)
+  # ns = number of stations
+  if (is.null(d)) ns <- 1 else ns <- d[2]
   if ((fun!="count") & (fun!="freq")) {
     #print(fun)
-     eval(parse(text=paste("y <- ",fun,'(X,...)',sep='')))
-     attr(y,'unit') <- attr(x,'unit')
+    # eval(parse(text=paste("y <- ",fun,'(X,...)',sep='')))
+    if ( (sum(is.element(names(formals(fun)),'na.rm')==1)) |
+         (sum(is.element(fun,c('mean','min','max','sum','quantile')))>0 ) )
+        y <- apply(matrix(X,length(X),ns),2,fun,na.rm=na.rm, ...) else
+        y <- apply(matrix(X,length(X),ns),2,fun, ...)
+    attr(y,'unit') <- attr(x,'unit')
   } else if (fun=="count")  {
     #print("Wet-day count")
     y <- sum(is.finite(X))
@@ -173,4 +180,26 @@ hist.spell <- function(x, ...) {
   plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
   legend(0.1,0.9,runs,col=col,lty=1,lwd=3,bty="n")
   
+}
+
+# Heating degree day
+HDD <- function(x,x0=18,na.rm=TRUE) {
+  cold <- x < x0
+  hdd <- sum(x0 - x[cold],na.rm=na.rm)
+  return(hdd)
+}
+
+# Cooling degree day
+CDD <- function(x,x0=22,na.rm=TRUE) {
+  warm <- x > x0
+  cdd <- sum(x[warm] - x0,na.rm=na.rm)
+  return(cdd)
+}
+
+# Growing degree days
+# http://en.wikipedia.org/wiki/Growing_degree-day
+GDD <- function(x,x0=10,na.rm=TRUE) {
+  gdd <- CDD(x,x0=x0)
+  attr(gdd,'url') <- 'http://en.wikipedia.org/wiki/Growing_degree-day'
+  return(gdd)
 }

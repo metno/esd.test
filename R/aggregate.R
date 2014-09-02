@@ -15,33 +15,31 @@ aggregate.station <- function(x,by,FUN = 'mean', na.rm=TRUE, ...,
   #print(deparse(substitute(by)))
   class(x) <- "zoo"
   #print("-------"); str(x)
-  fun4exc <- as.character(match.call())
-  if (inherits(FUN,'function')) FUN <- deparse(substitute(FUN)) # REB140314
-  #print(fun4exc)
+#  fun4exc <- as.character(match.call())
+#  if (inherits(FUN,'function')) FUN <- deparse(substitute(FUN)) # REB140314
+#  print(fun4exc)
   # This is a less elegant solution to ensure right units...
-  if (length(grep("exceedance",fun4exc))==1) {
-    if (length(grep("counts",fun4exc))==1) fun <- "counts" else
-    if (length(grep("freq",fun4exc))==1) fun <- "freq" else
-                                         fun <- "mean"
-  } else fun <- "mean"
-  if (length(grep("threshold",fun4exc))==0) threshold <- 1
+#  if (length(grep("exceedance",fun4exc))==1) {
+#    if (length(grep("counts",fun4exc))==1) fun <- "counts" else
+#    if (length(grep("freq",fun4exc))==1) fun <- "freq" else
+#    if (length(grep("wetfreq",fun4exc))==1) fun <- "wetfreq" else
+#    if (length(grep("wetmean",fun4exc))==1) fun <- "wetmean" else
+#                                            fun <- "mean"
+#  } else fun <- "mean"
+
+  #print(names(list(...))); print(names(formals(FUN)))
+  
+ # if (length(grep("threshold",fun4exc))==0) threshold <- 1
 #  y <- aggregate(x, by, match.fun(FUN),na.rm=TRUE, ...,
 #                 regular = regular, frequency = frequency)
   #browser()
-  y <- aggregate(x, by, FUN,na.rm=TRUE, ...,
-                 regular = regular, frequency = frequency)
+  if ( (sum(is.element(names(formals(FUN)),'na.rm')==1)) |
+       (sum(is.element(FUN,c('mean','min','max','sum','quantile')))>0 ) )
+    y <- aggregate(x, by, FUN, na.rm=TRUE, ...,
+                   regular = regular, frequency = frequency) else
+    y <- aggregate(x, by, FUN, ..., regular = regular, frequency = frequency)
   #str(y); print("-------")
-  if ((fun!="counts") & (fun!="freq")) {
-     attr(y,'unit') <- attr(x,'unit')
-  } else if (fun=="counts")  {
-    print("Wet-day count")
-    attr(y,'unit') <- paste("counts | X >",threshold," * ",attr(x,'unit'))
-  } else if (fun=="freq") {
-    print("Wet-day frequency")
-    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
-  }
-  unit <- attr(y,'unit')
-  history <- attr(y,'history')
+
   if (class(index(y))=="Date") {
   dy <- day(y); mo <- month(y); yr <- year(y)
     if (dy[2] - dy[1] > 0) cls[length(cls) - 1] <- "day" else
@@ -55,8 +53,41 @@ aggregate.station <- function(x,by,FUN = 'mean', na.rm=TRUE, ...,
   if (class(index(y))=="character") cls[length(cls) - 1] <- "annual"
   class(y) <- cls
   y <- attrcp(x,y)
-  unit -> attr(y,'unit')
-  history -> attr(y,'history')  
+
+  args <- list(...)
+  #print(names(args))
+  ix0 <- grep('threshold',names(args))
+  if (length(ix0)>0) threshold <- args[[ix0]] else threshold <- 1
+  #print(threshold)
+ 
+   #print(FUN)
+  if (FUN=="counts")  {
+    #print("Count")
+    attr(y,'unit') <- paste("counts | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="freq") {
+    #print("Frequency")
+    attr(y,'variable') <- 'f'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetfreq") {
+    #print("Wet-day frequency")
+    attr(y,'variable') <- 'f[w]'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetmean") {
+    #print("Wet-day mean")
+    attr(y,'variable') <- 'mu'
+    attr(y,'unit') <- 'mm/day'
+  } else if (FUN=="HDD") {
+    attr(y,'variable') <- 'HDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="CDD") {
+    attr(y,'variable') <- 'CDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="GDD") {
+    attr(y,'variable') <- 'GDD'
+    attr(y,'unit') <- 'degree-days'
+  } else attr(y,'unit') <- attr(x,'unit')
+
+  attr(y,'history') <- history.stamp(y)
   return(y)
 }
 
@@ -168,9 +199,10 @@ aggregate.field <- function(x,by,FUN = 'mean', ...,
 }
 
 
-aggregate.area <- function(x,is=NULL,it=NULL,FUN='sum',na.rm=TRUE,smallx=FALSE) {
+aggregate.area <- function(x,is=NULL,it=NULL,FUN='sum',
+                           na.rm=TRUE,smallx=FALSE) {
   # Estimate the area-aggregated values, e.g. the global mean (default)
-  x <- subset(x,is=is,it=it)
+    x <- subset(x,is=is,it=it)
    if (inherits(FUN,'function')) FUN <- deparse(substitute(FUN)) # REB140314
   d <- attr(x,'dimensions')
   #image(attr(x,'longitude'),attr(x,'latitude'),area)
@@ -178,20 +210,20 @@ aggregate.area <- function(x,is=NULL,it=NULL,FUN='sum',na.rm=TRUE,smallx=FALSE) 
   lon <- rep(attr(x,'longitude'),d[2])
   lat <- sort(rep(attr(x,'latitude'),d[1]))
   aweights <- cos(pi*lat/180)
-  area <- cos(pi*lat/180); dim(area) <- d[1:2]
+  aweights <- aweights/mean(aweights) 
+#  area <- cos(pi*lat/180); dim(area) <- d[1:2]
+#  area <- area/sum(area)
   if (smallx) {
     X <- coredata(x)%*%diag(aweights)
-    y <- zoo(apply(X,1,FUN,na.rm=na.rm)/sum(colSums(area)),
-             order.by=index(x))
+    y <- zoo(apply(X,1,FUN,na.rm=na.rm),order.by=index(x))
   } else {
     X <-coredata(x) 
-    for (i in 1:d[3])
-      X[i,] <- X[i,]*aweights
-    areasum <- sum(rep(cos(pi*lat(x))/180,d[1]))
-    y <- zoo(apply(X,1,FUN,na.rm=na.rm)/sum(colSums(area)),order.by=index(x))
+    for (i in 1:d[3]) X[i,] <- X[i,]*aweights
+    y <- zoo(apply(X,1,FUN,na.rm=na.rm),order.by=index(x))
   }
 
-  Y <- as.station(y,loc=attr(x,'source'),param=attr(x,'variable'),unit=attr(x,'unit'),
+  Y <- as.station(y,loc=attr(x,'source'),param=attr(x,'variable'),
+                  unit=attr(x,'unit'),
                   lon=range(lon(x)),lat=range(lat(x)),alt=NA,cntr=NA,
                   longname=paste(FUN,attr(x,'longname')),stid=NA,quality=NA,
                   src=attr(x,'source'),url=attr(x,'url'),

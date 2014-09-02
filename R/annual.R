@@ -12,7 +12,10 @@ annual.zoo <- function(x,FUN='mean',na.rm=TRUE,nmin=NULL, ...) {
   yr <- year(x)
   class(x) <- 'zoo'
 #  y <- aggregate(x,yr,FUN=match.fun(FUN),...,na.rm=na.rm)
-  y <- aggregate(x,yr,FUN=FUN,...,na.rm=na.rm)
+  if ( (sum(is.element(names(formals(FUN)),'na.rm')==1)) |
+       (sum(is.element(FUN,c('mean','min','max','sum','quantile')))>0) )
+    y <- aggregate(x,yr,FUN=FUN,...,na.rm=na.rm) else
+    y <- aggregate(x,yr,FUN=FUN,...)
   invisible(y)
 }
 
@@ -46,7 +49,7 @@ annual.zoo <- function(x,FUN='mean',na.rm=TRUE,nmin=NULL, ...) {
 
 annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
 
-  print('annual.default')
+  #print('annual.default')
   nv <- function(x) sum(is.finite(x))
 
   #browser()
@@ -58,15 +61,18 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
   YR <- as.numeric(rownames(table(yr)))
   nyr <- as.numeric(table(yr))
   nval <- aggregate(zoo(x,order.by=index(x)),year,FUN=nv)
-  #print(c(length(nval),length(YR))); plot(nval)
+  #print(c(length(nval),length(nyr),length(yr),length(YR))); plot(nval)
   #print(YR)
   #print(class(x))
   # Need to accomodate for the possibility of more than one station series.
   if (inherits(x,'day')) {
     if (is.null(nmin)) nmin <- 365
-    #fewd <- coredata(nval) < nmin
+    fewd <- coredata(nval) < nmin
+    nyr[fewd] <- coredata(nval)[fewd]
+    #print(fewd)
     #x[fewd] <- NA
-    ok <- is.element(yr,YR[nyr >= nmin])  # REB quick fix.
+    ok <- is.element(yr,YR[nyr >= nmin])
+    #browser()
   } else   if ( (inherits(x,'mon')) & is.null(nmin) ) {
       iy <- year(x)
       nmy <- as.numeric(table(iy))
@@ -81,17 +87,56 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
     OK <- nyr == 4
     ok <- is.element(yr,YR[OK])
   } else ok <- is.finite(yr)
-  #print(c(sum(ok),length(ok))); print(YR[nyr < nmin])
-  #print(nyr); print(YR[OK]); print(yr[ok]); print(sum(ok)); print(length(ok))
+  #print(c(sum(ok),length(ok),nmin)); print(YR[is.element(YR,yr[ok])])
+
+  # Make a new zoo-object without incomplete years
   if (length(d)==2) X <- zoo(coredata(x[ok,]),order.by=index(x)[ok]) else
                     X <- zoo(coredata(x[ok]),order.by=index(x)[ok])
+  #print(summary(X))
   if (FUN == 'sum') na.rm <- FALSE ## AM
   #y <- aggregate(X,yr[ok],FUN=FUN,...,na.rm=na.rm) ## AM
   #browser()
   #y <- aggregate(X,year,FUN==FUN,...,na.rm=na.rm) ## AM
-  y <- aggregate(X,year,FUN=match.fun(FUN),...,na.rm=na.rm) # REB.
+  #print(names(list(...))); print(names(formals(FUN)))
+  #browser()
+  #print(FUN); print(sum(is.element(names(formals(FUN)),'na.rm')))
+  if ( (sum(is.element(names(formals(FUN)),'na.rm')==1)) |
+       (sum(is.element(FUN,c('mean','min','max','sum','quantile')))>0) )
+    y <- aggregate(X,year,FUN=match.fun(FUN),...,na.rm=na.rm) else
+    y <- aggregate(X,year,FUN=match.fun(FUN),...) # REB.
   y[!is.finite(y)] <- NA ## AM
   y <- attrcp(x,y,ignore="names")
+
+  args <- list(...)
+  #print(names(args))
+  ix0 <- grep('threshold',names(args))
+  if (length(ix0)>0) threshold <- args[[ix0]] else threshold <- 1
+  if (FUN=="counts")  {
+    #print("Count")
+    attr(y,'unit') <- paste("counts | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="freq") {
+    #print("Frequency")
+    attr(y,'variable') <- 'f'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetfreq") {
+    #print("Wet-day frequency")
+    attr(y,'variable') <- 'f[w]'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetmean") {
+    #print("Wet-day mean")
+    attr(y,'variable') <- 'mu'
+    attr(y,'unit') <- 'mm/day'
+  } else if (FUN=="HDD") {
+    attr(y,'variable') <- 'HDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="CDD") {
+    attr(y,'variable') <- 'CDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="GDD") {
+    attr(y,'variable') <- 'GDD'
+    attr(y,'unit') <- 'degree-days'
+  } else attr(y,'unit') <- attr(x,'unit')
+
   attr(y,'history') <- history.stamp(x)
   class(y) <- class(x)
   class(y)[length(class(y))-1] <- "annual"
@@ -124,8 +169,9 @@ annual.spell <- function(x,FUN='mean',nmin=0,...) {
     x[is.element(iy,!full),] <- NA
     na.rm=FALSE
   }
-  #annual.default(x,FUN=match.fun(FUN),...)
-  annual.default(x,FUN=FUN,nmin=nmin,...)
+  #y <- annual.default(x,FUN=match.fun(FUN),...)
+  y <- annual.default(x,FUN=FUN,nmin=nmin,...)
+  return(y)
 }
 
 annual.dsensemble <- function(x,FUN='mean') {
@@ -184,23 +230,22 @@ year <- function(x) {
   if (class(x)[1]=="yearmon") y <- trunc(as.numeric(x)) else
   if (class(x)[1]=="yearqtr") y <- trunc(as.numeric(x)) else
   if (class(x)[1]=="character") y <- trunc(as.numeric(x)) else
+  if (class(x)[1]=="numeric") y <- trunc(x) else
   if (class(x)[1]=="season") {
     # If season, then the first month is really the December month of the previous year
      month <- round(12*(as.numeric(index(x)) - trunc(as.numeric(index(x)))) + 1)
      y[is.element(month,1)] <- y[is.element(month,1)] - 1
-   } else print('confused...')
+   } else print(paste(class(x)[1],' confused...'))
   return(y)
 }
 
 
-
-
 month <- function(x) {
-
-  if (inherits(x,'integer')) x <- as.numeric(x)
-  if ( (inherits(x,'numeric')) & (min(x,na.rm=TRUE) > 0) & (max(x,na.rm=TRUE) < 13) )
-    return(x)
+  if ( (inherits(x,c('numeric','integer'))) & (min(x,na.rm=TRUE) > 0) & (max(x,na.rm=TRUE) < 13) )
+    return(x) 
+  if ( (inherits(x,c('numeric','integer'))) & (min(x,na.rm=TRUE) > 0) ) y <- rep(1,length(x))
   if (inherits(x,c('station','field','zoo'))) {
+    #browser()
     y <- month(index(x))
     return(y)
   }
@@ -210,23 +255,23 @@ month <- function(x) {
   }
   #print(class(index(x)))
   if (class(x)[1]=="Date")
-    month <- as.numeric(format(x, '%m')) else
+    y <- as.numeric(format(x, '%m')) else
   if (class(x)[1]=="yearmon")
-    month <- round(12*(as.numeric(x) - trunc(as.numeric(x))) + 1) else
-  if (class(x)[1]=="yearqtr") month <- round(12*(as.numeric(x) - trunc(as.numeric(x))) + 1)
+    y <- round(12*(as.numeric(x) - trunc(as.numeric(x))) + 1) else
+  if (class(x)[1]=="yearqtr") y <- round(12*(as.numeric(x) - trunc(as.numeric(x))) + 1)
   if (class(x)[1]=="season") {
     # If season, then the first month is really the months are DJF, MAM, JJA, and OND:
-    month <- month - 1
-    month[month==-1] <- 12
+    y <- y - 1
+    y[y==-1] <- 12
   }
-  return(month)
+  return(y)
 }
 
 day <- function(x) {
-  if (inherits(x,'integer')) x <- as.numeric(x)
-  if ( (inherits(x,'numeric')) & (min(x,na.rm=TRUE) > 0) & (max(x,na.rm=TRUE) < 32) )
+  if (inherits(x,c('numeric','integer'))) x <- as.numeric(x)
+  if ( (inherits(x,c('numeric','integer'))) & (min(x,na.rm=TRUE) > 0) & (max(x,na.rm=TRUE) < 32) )
     return(x)
-    
+  if ( (inherits(x,c('numeric','integer'))) & (min(x,na.rm=TRUE) > 0) ) y <- rep(1,length(x))  
   if (inherits(x,c('station','field','zoo'))) {
     y <- day(index(x))
     return(y)
@@ -276,21 +321,22 @@ seasonal.yearmon <- function(x) {
   season
 }
 
-season.name <- function() {
-  season.c<-c("annual","DJF","MAM","JJA","SON")
-  season<-cbind(c(1,12,12),c(12,1,2),c(3,4,5),c(6,7,8),c(9,10,11))
-  colnames(season) <- season.c
+season.abb <- function() {
+  season.abb <- c('annual','djf','jfm','fma','mam','amj','mjj','jja','jas','aso',
+                  'son','ond','ndj','ondjfm','amjjas','ndjf','jjas')
+  season<-list(1:12,c(12,1,2),1:3,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,
+                c(11,12,1),c(10:12,1:3),4:9,c(11,12,1,2),6:9)
+  names(season) <- season.abb
   season
 }
 
 
 
-pentad <- function(x) {
-  if (inherits(x,'station','field')) {
-    y <- pentad(index(x))
-    return(y)
-  }  
-  pentad <- 5*trunc(year(x)/5)
-  pentad
+pentad <- function(x,l=5,...) {
+  yrl <- l*trunc(year(x)/l)
+  index(x) <- yrl
+  
+  xl <- aggregate(x,yrl,...)
+  xl
 }
 

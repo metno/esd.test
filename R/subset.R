@@ -90,16 +90,19 @@
 subset.field <- function(x,it=NULL,is=NULL) {
   #print("subset.field")
 
+  
   x0 <- x
   if (is.null(it) & is.null(is)) return(x)
   if (is.null(it) & is.null(is[[1]]) & is.null(is[[2]])) return(x) 
   t <- index(x)
   datetype <- class(t)
-  if (datetype=="Date") {
-    years <- as.numeric( format(t, '%Y') ) 
-    months <- as.numeric( format(t, '%m') )
-  } else
-  if (datetype=="numeric") years <- t
+  years <- year(x)
+  months=month(x)
+#  if (datetype=="Date") {
+#    years <- as.numeric( format(t, '%Y') ) 
+#    months <- as.numeric( format(t, '%m') )
+#  } else
+#  if (datetype=="numeric") years <- t
 
   class(x) -> cls
   #print(cls)
@@ -118,21 +121,27 @@ subset.field <- function(x,it=NULL,is=NULL) {
  #         ii <- is.element(month,it)
  #         y <- x[ii,]
  #       } else
-    if ( (min(it) > 0) & (max(it) < 13) & (inherits(x0,c("month"))) ) {
-      #keepm <- as.numeric(format(index(X),"%m"))==it
-      #print("Monthly aggregated field")
-      #keepm <- is.element(as.POSIXlt(dates)$mon+1,it)
-      ii <- is.element(months,it)
-      y <- x[ii,is]
-    } else 
-    if ( (min(it) > 0) & (max(it) < 5) & (inherits(x0,c("season"))) ) {
-      #print("Seasonally aggregated field")
-      #print(table(months))
-      #keepm <- is.element(months,c(1,4,7,10)[it])
-      #print(c(it,sum(keepm)))
-      ii <- is.element(months,c(1,4,7,10)[it])
-      y <- x[ii,is]
-    } else
+#    if ( (min(it) > 0) & (max(it) < 13) & (inherits(x0,c("month"))) ) {
+    if (is.character(it)) {
+        if (sum(is.element(tolower(substr(it,1,3)),tolower(month.abb)))>0) {
+        #keepm <- as.numeric(format(index(X),"%m"))==it
+        #print("Monthly aggregated field")
+        #keepm <- is.element(as.POSIXlt(dates)$mon+1,it)
+        ii <- is.element(months,(1:12)[is.element(tolower(month.abb),
+                                                  tolower(substr(it,1,3)))])
+        y <- x[ii,is]
+      } else 
+      #if ( (min(it) > 0) & (max(it) < 5) & (inherits(x0,c("season"))) ) {
+      if (sum(is.element(tolower(it),names(season.abb())))>0) {
+        #print("Seasonally selected")
+        #print(table(months))
+        #keepm <- is.element(months,c(1,4,7,10)[it])
+        #print(c(it,sum(keepm)))
+        #print(table(months)); print(eval(parse(text=paste('season.abb()$',it,sep=''))))
+        ii <- is.element(months,eval(parse(text=paste('season.abb()$',it,sep=''))))
+        y <- x[ii,is]
+      }
+  } else
     if (sum(is.element(it,1600:2200)) > 0) {
       if (length(it)==2) ii <- is.element(years,min(it):max(it)) else
                          ii <- is.element(years,it)
@@ -141,13 +150,14 @@ subset.field <- function(x,it=NULL,is=NULL) {
           #print(years[ii]); print(it)
           y <- x[ii,]
     } else
+    if ( (min(it) > 0) & (max(it) <= length(index(x))) ) y <- x[it,] else
     if (is.character(it)) {
           #print("Dates")
           y <- matchdate(x,it)
     } else
-    if (inherits(it,c('field','station'))) {
+    if (inherits(it,c('field','station','zoo'))) {
       # Match the times of another esd-data object
-      print('field/station')
+      # print('field/station')
       y <- matchdate(x,it)
     }
     d[3] <- length(index(y))
@@ -249,9 +259,9 @@ subset.comb <- function(x,it=NULL,is=NULL) {
   #print("subset.comb")
   y <- subset.field(x,it=it,is=is)
   y <- attrcp(x,y)
-  n.aps <- attr(x,'n.apps')
-  #print(n.aps)
-  for (i in 1:n.aps) {
+  n.app <- attr(x,'n.apps')
+  #print(n.app)
+  for (i in 1:n.app) {
     eval(parse(text=paste("z <- attr(x,'appendix.",i,"')",sep="")))
     attr(z,'longitude') <- attr(x,'longitude')
     attr(z,'latitude') <- attr(x,'latitude')
@@ -263,6 +273,7 @@ subset.comb <- function(x,it=NULL,is=NULL) {
                                length(index(yz)))
     eval(parse(text=paste("yz -> attr(y,'appendix.",i,"')",sep="")))
   }
+  n.app -> attr(y,'n.apps')
   attr(y,'history') <- history.stamp(x)
   invisible(y)
 }
@@ -422,15 +433,18 @@ subset.dsensemble <- function(x,it=NULL,is=NULL) {
   d <- dim(x)
   if (is.null(is)) is <- 1:d[2]
   if (!is.null(it)) {
+    it <- tolower(it)
+    if ( (length(rownames(table(month(x))))==1) & (it==0) )
+      return(x)
 # Different ways of selecting along the time dimension
     if ( inherits(it[1],"logical") & (length(it)==length(x)) )
         y <- x[it,is] else
     if (it[1]==0) {
       #print("Annual means")
-      djf <- subset(x,it=1,is=is)
-      mam <- subset(x,it=2,is=is)
-      jja <- subset(x,it=3,is=is)
-      son <- subset(x,it=4,is=is)
+      djf <- subset(x,it='djf',is=is)
+      mam <- subset(x,it='mam',is=is)
+      jja <- subset(x,it='jja',is=is)
+      son <- subset(x,it='son',is=is)
       yr1 <- year(djf)
       yr2 <- year(mam)
       yr3 <- year(jja)
@@ -451,13 +465,26 @@ subset.dsensemble <- function(x,it=NULL,is=NULL) {
                order.by=as.Date(paste(yr,'01-01',sep='-')))
       y <- attrcp(x0,y)
       class(y) <- class(x0)
-    } else
-    if ( (min(it) > 0) & (max(it) < 5) ) {
-      # dsensemble is not for monthly data
-      #print("Seasonal selection")
-      ii <- is.element(month(x),c(1,4,7,10)[it])
-      y <- x[ii,is]
-    } else
+    } else if (is.character(it)) {
+        #print("it is character")
+        months <- month(x)
+        if (sum(is.element(tolower(substr(it,1,3)),tolower(month.abb)))>0) {
+        ii <- is.element(months,(1:12)[is.element(tolower(month.abb),
+                                                  tolower(substr(it,1,3)))])
+        y <- x[ii,is]
+      } else if (sum(is.element(tolower(it),names(season.abb())))>0) {
+        #print("season")
+        mon <- eval(parse(text=paste('season.abb()$',it,sep='')))
+        #print(mon)
+        ii <- is.element(months,mon)
+        y <- x[ii,is]
+#      }
+#    if ( (min(it) > 0) & (max(it) < 5) ) {
+#      # dsensemble is not for monthly data
+#      #print("Seasonal selection")
+#      ii <- is.element(month(x),c(1,4,7,10)[it])
+#      y <- x[ii,is]
+    } } else
     if (sum(is.element(it,1600:2200)) > 0) {
           ii <- is.element(year,it)
           #print(paste("Number of matches=",sum(ii)))
@@ -491,5 +518,27 @@ subset.dsensemble <- function(x,it=NULL,is=NULL) {
   return(y)  
 }
 
-
+subset.spell <- function(x,is=NULL,it=NULL) {
+  y <- subset.station(x,is=is,it=it)
+  good <- is.finite(y)
+  y <- zoo(y[good],order.by=index(y)[good])
+  attr(y,'location') <- loc(x)[is]
+  attr(y,'variable') <- varid(x)[is]
+  attr(y,'unit') <- unit(x)[is]
+  attr(y,'station_id') <- stid(x)[is]
+  attr(y,'longitude') <- lon(x)[is]
+  attr(y,'latitude') <- lat(x)[is]
+  attr(y,'altitude') <- alt(x)[is]
+  attr(y,'longname') <- attr(x,'longname')[is]
+  attr(y,'aspect') <- attr(x,'aspect')[is]
+  attr(y,'source') <- attr(x,'source')[is]
+  attr(y,'URL') <- attr(x,'URL')[is]
+  attr(y,'quality') <- attr(x,'quality')[is]
+  attr(y,'country') <- attr(x,'country')[is]
+  attr(y,'threshold') <- attr(x,'threshold')[is]
+  attr(y,'threshold.unit') <- attr(x,'threshold.unit')[is]
+  attr(y,'history') <- history.stamp(x)
+  class(y) <- class(x)[-1]
+  invisible(y)
+}
 

@@ -83,6 +83,16 @@ colscal <- function(cols="bwr",n=100,test=FALSE) {
     g <- exp(sg*(x - g0)^2)^2
     b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0,length=n1))
     col <- rgb(b,g,r)
+  } else if (cols=="faint.bwr") {
+    r <- exp(s*(x - r0)^2)^0.5 * c(seq(0.5,1,length=n1),rep(1,n2))
+    g <- min(exp(sg*(x - g0)^2)^2 + 0.5,1)
+    b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0.5,length=n1))
+    col <- rgb(r,g,b)
+  } else if (cols=="faint.rwb") {
+    r <- exp(s*(x - r0)^2)^0.5 * c(seq(0.5,1,length=n1),rep(1,n2))
+    g <- min(exp(sg*(x - g0)^2)^2 + 0.5,1)
+    b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0.5,length=n1))
+    col <- rgb(b,g,r)
   }
 
   if (test) test.col(r,g,b)
@@ -100,7 +110,7 @@ colbar <- function(scale,col,fig=c(0.15,0.2,0.15,0.3)) {
 cumugram <- function(x,it=NULL,...) {
   stopifnot(!missing(x),inherits(x,"station"))
   
-  print("cumugram")
+  #print("cumugram")
   yrs <- as.numeric(rownames(table(year(x))))
   #print(yrs)
   ny <- length(yrs)
@@ -116,7 +126,23 @@ cumugram <- function(x,it=NULL,...) {
   dev.new()
   par(bty="n")
   z <- coredata(x)
-  plot(c(0,365),1.5*mean(z[1:365],na.rm=TRUE)*c(-1,1),
+  ylim <- c(NA,NA)
+
+  #print('Find the y-range')
+  for (i in 1:ny) {
+    y <- window(x,start=as.Date(paste(yrs[i],'-01-01',sep='')),
+                    end=as.Date(paste(yrs[i],'-12-31',sep='')))
+    t <- julian(index(y)) - julian(as.Date(paste(yrs[i],'-01-01',sep='')))
+    z <- cumsum(coredata(y))/1:length(y)
+    ok <- is.finite(z)
+    #print(c(range(z[ok],na.rm=TRUE),ylim))
+    ylim[!is.finite(ylim)] <- NA
+    ylim[1] <- min(c(ylim,z[ok]),na.rm=TRUE)
+    ylim[2] <- max(c(ylim,z[ok]),na.rm=TRUE)
+  }
+  #print(ylim)
+  
+  plot(c(0,365),ylim,
        type="n",xlab="",
        main=main,sub=attr(x,'location'),ylab=unit,...)
   grid()
@@ -140,8 +166,12 @@ cumugram <- function(x,it=NULL,...) {
     lines(t,z,lwd=2,col=col[i])
   }
 
-  par(new=TRUE,fig=c(0.70,0.85,0.20,0.35),mar=c(0,3,0,0),
-      cex.axis=0.7,yaxt="s",xaxt="n",las=1)
+  if (varid(x)!='precip') 
+    par(new=TRUE,fig=c(0.70,0.85,0.20,0.35),mar=c(0,3,0,0),
+        cex.axis=0.7,yaxt="s",xaxt="n",las=1)
+  else
+    par(new=TRUE,fig=c(0.70,0.85,0.70,0.85),mar=c(0,3,0,0),
+        cex.axis=0.7,yaxt="s",xaxt="n",las=1)
   colbar <- rbind(1:ny,1:ny)
   image(1:2,yrs,colbar,col=col)
 }
@@ -149,7 +179,7 @@ cumugram <- function(x,it=NULL,...) {
 # Estimate how the variance varies with season 
 # sd from inter-annual variability of daily values
 
-climvar <- function(x,FUN=sd,plot=TRUE,...) {
+climvar <- function(x,FUN='sd',plot=TRUE,...) {
   yrs <- as.numeric(rownames(table(year(x))))
   #print(yrs)
   ny <- length(yrs)
@@ -159,8 +189,8 @@ climvar <- function(x,FUN=sd,plot=TRUE,...) {
       unit <- expression(degree*C) else
       unit <- attr(x,'unit')
   eval(parse(text=paste("main <- expression(paste('seasonal ",
-               deparse(substitute(FUN))," of ',",
-               attr(x,'variable'),"))")))
+#               deparse(substitute(FUN))," of ',",
+               FUN," of ',",attr(x,'variable'),"))")))
   Z <- matrix(rep(NA,ny*365),ny,365)
   
   for (i in 1:ny) {

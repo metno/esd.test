@@ -156,7 +156,7 @@ regrid.default <- function(x,is,verbose=FALSE,...) {
 regrid.field <- function(x,is,approach="field",clever=FALSE,verbose=FALSE) {
 
   stopifnot(inherits(x,'field'))
-
+  
   if (approach=="eof2field") {
     y <- regrid.eof2field(x,is)
     return(y)
@@ -172,8 +172,11 @@ regrid.field <- function(x,is,approach="field",clever=FALSE,verbose=FALSE) {
   }
   
   greenwich <- attr(x,'greenwich')
-  if ( greenwich & (min(lon.new < 0)) ) x <- g2dl(x,greenwich=FALSE)
-
+  if (verbose) print(paste('greenwich=',greenwich))
+  # REB 13.05.2014
+  if ( (min(lon.new) < 0) & (max(lon.new) <= 180) ) x <- g2dl(x,greenwich=FALSE) else
+  if ( (min(lon.new) > 0) & (max(lon.new) <= 360) ) x <- g2dl(x,greenwich=FALSE) else
+     stop(paste('Bad longitude range: ',min(lon.new),'-',max(lon.new))) 
   
   if (verbose) {print("New coordinates"); print(lon.new); print(lat.new)}
 
@@ -248,8 +251,10 @@ regrid.field <- function(x,is,approach="field",clever=FALSE,verbose=FALSE) {
 
   #print(dim(cbind(beta,attr(beta,'index'))))
   
+  if (verbose) pb <- txtProgressBar(style=3)
   for (i in 1:d[1]) {
-    if (verbose) cat(".")
+    #if (verbose) cat(".")
+    if (verbose) setTxtProgressBar(pb,i/d[1])  
     #z <- apply(cbind(beta,attr(beta,'index')),1,sparseMproduct,coredata(x[i,]))
     #if (verbose) print(c(i,d[1],length(z),length(y[,i]),NA,dim(x),dim(y)))
     #y[,i] <- z

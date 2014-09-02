@@ -4,7 +4,7 @@
 
 wheel <- function(x,...) UseMethod("wheel")
 
-wheel.station <- function(x,lwd=2,col=NULL...) {
+wheel.station <- function(x,new=TRUE,lwd=2,col=NULL,bg="grey90",...) {
   mx <- max(abs(coredata(x)),na.rm=TRUE)
 #  r <- mean(coredata(x),na.rm=TRUE)
   r <- mx
@@ -16,14 +16,14 @@ wheel.station <- function(x,lwd=2,col=NULL...) {
   md <- as.integer(rownames(table(MD)))
   #print(md)
   m <- length(md)
-  dev.new()
+  if (new) dev.new()
   par(bty="n",xaxt="n",yaxt="n") -> par0
   plot(c(-1.2,1.2)*(r+mx),c(-1.2,1.2)*(r+mx),type="n",
        xlab="",ylab="",
        main=paste("Seasonal 'wheel' for",attr(x,'location')),
        sub=attr(x,'variable'))
-  rect(-(r+mx),(r+mx),0,0,col="grey90",border=NA)
-  rect(0,0,(r+mx),-(r+mx),col="grey90",border=NA)
+  rect(-(r+mx),(r+mx),0,0,col=bg,border=NA)
+  rect(0,0,(r+mx),-(r+mx),col=bg,border=NA)
   lines(c(-1,1)*(r+mx),c(0,0))
   lines(c(0,0),c(-1,1)*(r+mx))
   text(0,1.2*(r+mx),"January")
@@ -62,7 +62,7 @@ wheel.station <- function(x,lwd=2,col=NULL...) {
   image(1:2,years,colbar,col=col)
 }
 
-wheel.spell <- function(x,lwd=2,col=NULL...) {
+wheel.spell <- function(x,new=TRUE,lwd=2,col=NULL...) {
   mx <- max(abs(coredata(x)),na.rm=TRUE)
 #  r <- mean(coredata(x),na.rm=TRUE)
   r <- mx

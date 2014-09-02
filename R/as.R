@@ -449,11 +449,42 @@ as.annual.spell <- function(x, ...) annual.spell(x,...)
 #  return(y)
 #}
 
-as.monthly <- function(x,FUN=mean,...) {
-  y <- aggregate(as.zoo(x),function(tt) as.Date(as.yearmon(tt)),FUN,...)
+as.monthly <- function(x,FUN='mean',...) {
+  y <- aggregate(as.zoo(x),function(tt) as.Date(as.yearmon(tt)),FUN=FUN,...)
   y <- attrcp(x,y)
   attr(y,'history') <- history.stamp(x)
   class(y)[2] <- "month" 
+  return(y)
+}
+
+
+# Not to confuse with season
+# This function extracts a given seasonal interval and aggrigates a given statistic
+as.seasons <- function(x,start='01-01',end='12-31',FUN='mean', ...) {
+  IV <- function(x) sum(is.finite(x))
+  yrs <- year(x); d <- dim(x)
+  # ns = number of stations
+  if (is.null(d)) ns <- 1 else ns <- d[2]
+  years <- as.numeric(rownames(table(yrs))); n <- length(years)
+  y <- matrix(rep(NA,n*ns),n,ns); k <- y
+  start.1 <- as.numeric(as.Date(paste(years[1],start,sep='-')))
+  end.1 <- as.numeric(as.Date(paste(years[1],end,sep='-')))
+  if (start.1 > end.1) twoyears <- 1 else twoyears <- 0
+  #browser()
+  for (i in 1:n) {
+    z <- coredata(window(x,start=as.Date(paste(years[i],start,sep='-')),
+                           end=as.Date(paste(years[i]+twoyears,end,sep='-'))))
+    k[i,] <- apply(matrix(z,length(z),ns),2,IV)
+    y[i,] <- apply(matrix(z,length(z),ns),2,FUN, ...)
+  }
+  y <- zoo(y,order.by=as.Date(paste(years,start,sep='-')))
+  y <- attrcp(x,y)
+  attr(y,'history') <- history.stamp(x)
+  if (twoyears==0) attr(y,'season.interval') <- paste(start,'to',end) else
+                   attr(y,'season.interval') <- paste(start,'to',end,'the following year')
+  attr(y,'n.valid') <- k
+  class(y) <- class(x)
+  class(y)[2] <- "annual"
   return(y)
 }
 
@@ -472,7 +503,8 @@ as.4seasons <- function(x,...) UseMethod("as.4seasons")
 
 
 
-as.4seasons.default <- function(x,FUN=mean,slow=FALSE,...) {
+as.4seasons.default <- function(x,FUN='mean',slow=FALSE,...) {
+  #print('as.4seasons.default')
   attr(x,'names') <- NULL
 
   d <- dim(coredata(x))
@@ -488,10 +520,15 @@ as.4seasons.default <- function(x,FUN=mean,slow=FALSE,...) {
       X <- zoo(X,order.by=index(x))
     ##yrseas <- fourseasons(ix)
     ##print(yrseas)
-      y <- aggregate(x=as.zoo(X),by= as.yearqtr,FUN=match.fun(FUN),...)
+     #print('agrigate')
+     #print(names(list(...)))
+
+     y <- aggregate(x=as.zoo(X),by= as.yearqtr,FUN=match.fun(FUN),...)
     # convert yearqtr to yearmon
       y <- zoo(x=y,order.by=as.Date(as.yearmon(index(y))))
-    } else y <- as.4seasons.day(x,FUN=match.fun(FUN),...)
+    } else y <- as.4seasons.day(x,FUN=FUN,...)
+    #y <- as.4seasons.day(x,FUN=match.fun(FUN),...)
+    
     #print(dim(y))
     ok <- length(index(y))
     #print(summary(c(coredata(y))))
@@ -540,11 +577,12 @@ as.4seasons.default <- function(x,FUN=mean,slow=FALSE,...) {
   return(y) 
 }
 
-as.4seasons.day <- function(x,FUN=mean,na.rm=TRUE,dateindex=TRUE,...) {
+as.4seasons.day <- function(x,FUN='mean',na.rm=TRUE,dateindex=TRUE,...) {
 
   IV <- function(x) sum(is.finite(x))
 
-  attr(x,'names') <- NULL
+  #print('as.4seasons.day')
+  attr(x,'names') <- NULL  
   t <- index(x)
   year <- as.numeric(format(t,'%Y'))
   month <- as.numeric(format(t,'%m'))
@@ -567,7 +605,14 @@ as.4seasons.day <- function(x,FUN=mean,na.rm=TRUE,dateindex=TRUE,...) {
   X <- zoo(coredata(x),order.by=tshifted)
   nd <- aggregate(X,as.yearqtr,FUN=IV)
   ok <- nd >= 85
-  y <- aggregate(X,as.yearqtr,FUN=match.fun(FUN),...,na.rm=na.rm)
+  #browser()
+  # Test for the presens of 'na.rm' in argument list - this is a crude fix and not a
+  # very satisfactory one. Fails for FUN==primitive function.
+  if (is.function(FUN)) test.na.rm <- FALSE else
+      test.na.rm <- (sum(is.element(FUN,c('mean','min','max','sum','quantile')))>0)
+  if ( (sum(is.element(names(formals(FUN)),'na.rm')==1)) | (test.na.rm) )
+     y <- aggregate(X,as.yearqtr,FUN=match.fun(FUN),...,na.rm=na.rm) else
+     y <- aggregate(X,as.yearqtr,FUN=match.fun(FUN),...)
   if (dateindex)
     y <- zoo(coredata(y[ok]),order.by=as.Date(index(y)[ok]))
   unit <- attr(y,'unit')
@@ -580,7 +625,8 @@ as.4seasons.day <- function(x,FUN=mean,na.rm=TRUE,dateindex=TRUE,...) {
   invisible(y)
 }
 
-as.4seasons.station <- function(x,FUN=mean,...) {
+as.4seasons.station <- function(x,FUN='mean',...) {
+  #print('as.4seasons.station')
   y <- as.4seasons.default(x,FUN,...)
 #  y <- attrcp(x,y)
 #  attr(y,'history') <- history.stamp(x)
@@ -589,7 +635,7 @@ as.4seasons.station <- function(x,FUN=mean,...) {
   return(y) 
 }
 
-as.4seasons.spell <- function(x,FUN=mean,...) {
+as.4seasons.spell <- function(x,FUN='mean',...) {
   y <- as.4seasons.default(as.station(x),FUN,...)
 #  y <- attrcp(x,y)
 #  attr(y,'history') <- history.stamp(x)
@@ -599,7 +645,7 @@ as.4seasons.spell <- function(x,FUN=mean,...) {
 }
 
 
-as.4seasons.field <- function(x,FUN=mean,...) {
+as.4seasons.field <- function(x,FUN='mean',...) {
   d <- attr(x,"dimensions")
   y <- as.4seasons.default(x,FUN,...)
   y <- attrcp(x,y)
@@ -854,6 +900,11 @@ as.pattern.corfield <- function(x) {
 
 as.eof <- function(x,...) UseMethod("as.eof")
 
+as.eof.zoo <- function(x,...) {
+  class(x) <- c('eof','zoo')
+  return(x)
+}
+
 as.eof.eof <-function(x,iapp=NULL) {
   if (inherits(x,'comb')) x <- as.eof.comb(x,iapp) 
   return(x)
@@ -918,8 +969,4 @@ as.appended.field.comb <- function(x,iapp=1) {
   invisible(X)
 }
 
-pentad <- function(x) {
-  pentad <- 5*trunc(year(x)/5)
-  pentad
-}
 

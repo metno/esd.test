@@ -1,21 +1,12 @@
 plot <- function(x,y, ...)  UseMethod("plot")
+     
+plot.station <- function(x,plot.type="single",new=TRUE,
+                         lwd=3,type='l',pch=0,main=NULL,col=NULL,
+                         xlim=NULL,ylim=NULL,xlab="",ylab=NULL,...) {
 
-plot.station <- function(x,plot.type="single",...) {
-
-  dev.new()
-  args <- list(...)
-  #str(args)
-  argnms <- names(args)
-  ix <- grep('xlim',argnms)
-  iy <- grep('ylim',argnms)
-  ic <- grep('col',argnms)
-  
-  if (length(ix)>0) xlim <- args[[ix]] else xlim <- NULL
-  if (length(iy)>0) ylim <- args[[iy]] else ylim <- NULL
-  if (length(ic)>0) col <- args[[ic]] else col <- rainbow(length(x[1,]))  
-  
+  #print('plot.station')
   par(bty="n",xaxt="s",yaxt="s",xpd=FALSE,
-      fig=c(0,1,0.05,0.95),cex.axis=0.6,cex.lab=0.6)
+      fig=c(0,1,0.05,0.95))
 
   unit <- attr(x,'unit')[1]
   for (i in 1:length(unit)) {
@@ -23,57 +14,62 @@ plot.station <- function(x,plot.type="single",...) {
     if ((unit[i]=='degree Celsius') | (unit[i]=='deg C') | (unit[i]=='degC'))
          unit[i] <- 'degree*C'
   }
-  ns <- length(attr(x,'variable'))
-  ylab <- as.character(nam2expr(attr(x,'variable')))
+
+  if (plot.type=="single") {
+    if (is.null(ylab))
+         ylab <- try(eval(parse(text=paste("ylab <- expression(",varid(x),
+                                 "*phantom(0)*(",unit,"))"))),silent=TRUE)
+    if (inherits(ylab,"try-error")) ylab <- unit(x)
+  } else if (length(stid(x)>1)) ylab= stid(x)
+  
+  if (is.null(main)) main <- attr(x,'longname')[1]              
+  if (is.null(col)) col <- rainbow(length(x[1,]))
+
+  ns <- length(stid(x))
   if (ns > 1) {
     for (i in 1:ns) {
         z <- try(eval(parse(text=paste("ylab[",i,"] <- expression(",ylab[i],
-                                                       "*phantom(0)*(",unit[i],"))"))),
-                 silent=TRUE)
+                      "*phantom(0)*(",unit[i],"))"))),silent=TRUE)
         if (inherits(z,"try-error")) ylab[i] <- unit[i]
-    }
-  } else {
-        z <- try(eval(parse(text=paste("ylab <- expression(",ylab,
-                                                     "*phantom(0)*(",unit,"))"))),
-                 silent=TRUE)
-        if (inherits(z,"try-error")) ylab <- unit
+      }
   }
+  
   #print(ylab)
   class(x) <- "zoo"
-  plot.zoo(x,plot.type=plot.type,ylab=ylab,xlab="",
-           main=attr(x,'longname')[1],
-           col=col,...)
+  plot.zoo(x,plot.type=plot.type,ylab=ylab,xlab=xlab,
+           main=main,col=col,xlim=xlim,ylim=ylim,lwd=lwd,type=type,pch=pch)
   par0 <- par()
-  
-  par(fig=c(0,1,0,0.1),new=TRUE, mar=c(0,0,0,0),xaxt="s",yaxt="s",bty="n")
-  plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
-  legend(0.01,0.95,paste(attr(x,'location'),": ",
-                         #attr(x,'aspect'),
-                         #attr(x,'longname')," - ",
-                         round(attr(x,'longitude'),2),"E/",
-                         round(attr(x,'latitude'),2),"N (",
-                         attr(x,'altitude')," masl)",sep=""),
-         bty="n",cex=0.6,ncol=3,text.col="grey40",lty=1,col=col)
-  par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
-      fig=c(0,1,0.1,1),new=TRUE)
 
-  par(fig=c(0,1,0.05,0.95),new=TRUE,mar=par0$mar,xaxt="n",yaxt="n",bty="n")
-  if (plot.type=="single")
+  if (plot.type=="single") {
+    par(fig=c(0,1,0,0.1),new=TRUE, mar=c(0,0,0,0),xaxt="s",yaxt="s",bty="n")
+    plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
+    legend(0.01,0.95,paste(attr(x,'location'),": ",
+                           #attr(x,'aspect'),
+                           #attr(x,'longname')," - ",
+                           round(attr(x,'longitude'),2),"E/",
+                           round(attr(x,'latitude'),2),"N (",
+                           attr(x,'altitude')," masl)",sep=""),
+           bty="n",cex=0.6,ncol=3,text.col="grey40",lty=1,col=col)
+    par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
+        fig=c(0,1,0.1,1),new=TRUE)
+
+    par(fig=c(0,1,0.05,0.95),new=TRUE,mar=par0$mar,xaxt="n",yaxt="n",bty="n")
     plot.zoo(x,plot.type=plot.type,type="n",ylab="",xlab="",xlim=xlim,ylim=ylim)
+  }
 }
 
 
-plot.eof <- function(x,xlim=NULL,ylim=NULL,pattern=1,what=c("pc","eof","var"),...) {
+plot.eof <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=1,what=c("pc","eof","var"),...) {
   if (inherits(x,"comb"))
-    plot.eof.comb(x,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...) else
+    plot.eof.comb(x,new=new,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...) else
   if (inherits(x,"field"))
-    plot.eof.field(x,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...)
+    plot.eof.field(x,new=new,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...)
 }
 
 
 
 
-plot.eof.field <- function(x,xlim=NULL,ylim=NULL,pattern=8,what=c("pc","eof","var"),...) {
+plot.eof.field <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=1,what=c("pc","eof","var"),...) {
   n <- pattern
   what <- tolower(what)
   #str(pattern); stop("HERE")
@@ -81,11 +77,11 @@ plot.eof.field <- function(x,xlim=NULL,ylim=NULL,pattern=8,what=c("pc","eof","va
   tot.var <- attr(x,'tot.var')
   var.eof <- 100* D^2/tot.var
   
-  if (length(grep('eof',what))>0) map(x) -> result else
+  if (length(grep('eof',what))>0) map(x,pattern=pattern) -> result else
   if (length(grep('pc',what))>0) result <- as.station(x) else
   if (length(grep('var',what))>0) result <- attr(x,'tot.var')
     
-  dev.new()
+  if (new) dev.new()
   par(cex.axis=0.75,cex.lab=0.7,cex.main=0.8)
   ylab <- paste("PC",1:n)
   main <- paste(attr(x,'longname'),n,"leading EOFs: ",
@@ -98,8 +94,9 @@ plot.eof.field <- function(x,xlim=NULL,ylim=NULL,pattern=8,what=c("pc","eof","va
 }
 
 
-plot.eof.comb <- function(x,xlim=NULL,ylim=NULL,pattern=1,col=c("red"),what=c("pc","eof","var"),...) {
-  print("plot.eof.comb")
+plot.eof.comb <- function(x,new=TRUE,xlim=NULL,ylim=NULL,
+                          pattern=1,col=c("red"),what=c("pc","eof","var"),...) {
+  #print("plot.eof.comb")
   n <- pattern
   D <- attr(x,'eigenvalues')
   tot.var <- attr(x,'tot.var')
@@ -110,7 +107,7 @@ plot.eof.comb <- function(x,xlim=NULL,ylim=NULL,pattern=1,col=c("red"),what=c("p
   col <- rep(col,n.app)
   src <- rep("",n.app+1)
   src[1] <- attr(x,'source')
-  dev.new()
+  if (new) dev.new()
   par(bty="n",fig=c(0,1,0.1,1),mar=c(3,4,2,2),cex.main=0.8)
   ylab <- paste("PC",n)
   main <- paste("EOF: ",n,"accounts for",
@@ -139,7 +136,7 @@ plot.eof.comb <- function(x,xlim=NULL,ylim=NULL,pattern=1,col=c("red"),what=c("p
     for (i in 1:n.app) {
       z <- attr(x,paste('appendix.',i,sep=""))
       lines(z[,n],col=col[i],lwd=2)
-      print(attr(z,'source'))
+      #print(attr(z,'source'))
       src[i+1] <- attr(z,'source')
     }
     par(xaxt="n",yaxt="n",bty="n",fig=c(0,1,0,0.1),
@@ -154,7 +151,7 @@ plot.eof.comb <- function(x,xlim=NULL,ylim=NULL,pattern=1,col=c("red"),what=c("p
   invisible(x)
 }
 
-plot.eof.var <- function(x,xlim=NULL,ylim=NULL,pattern=20,...) {
+plot.eof.var <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=20,...) {
   n <- pattern
   D <- attr(x,'eigenvalues')
   tot.var <- attr(x,'tot.var')
@@ -167,7 +164,7 @@ plot.eof.var <- function(x,xlim=NULL,ylim=NULL,pattern=20,...) {
                  round(sum(var.eof[1:n]),1),"% of variance")
   if (is.null(xlim)) xlim <- c(0.7,n+0.3)
   if (is.null(ylim)) ylim <- c(0,100)
-  dev.new()
+  if (new) dev.new()
   par(bty="n",xaxt="n")
   plot(var.eof,type="n",
        main=main,ylab="Variance (%)",xlab="EOF order",xlim=xlim,ylim=ylim)
@@ -189,7 +186,10 @@ plot.eof.var <- function(x,xlim=NULL,ylim=NULL,pattern=20,...) {
 }
 
 
-plot.ds <- function(x, xlim=NULL, ylim=NULL, ...) {
+plot.ds <- function(x,plot.type="single",what=c("map","ts"),new=TRUE,
+                    lwd=3,type='l',pch=0,main=NULL,col=NULL,
+                    xlim=NULL,ylim=NULL,xlab="",ylab=NULL,...) {
+  #print('plot.ds')
   if (inherits(x,'pca')) {
     plot.pca(x)
     return()
@@ -201,17 +201,27 @@ plot.ds <- function(x, xlim=NULL, ylim=NULL, ...) {
     if ((unit[i]=='degree Celsius') | (unit[i]=='deg C') | (unit[i]=='degC'))
          unit[i] <- 'degree*C'
   }
+
+  if (is.null(ylab))
+   ylab <- try(eval(parse(text=paste("ylab <- expression(",varid(x),
+                               "*phantom(0)*(",unit,"))"))),silent=TRUE)
+  if (inherits(ylab,"try-error")) ylab <- unit(x)
+  
+  #print('HERE'); print(ylab)
+  if (is.null(main)) main <- attr(x,'longname')[1]               
+  if (is.null(col)) col <- rainbow(length(x[1,]))  
   
   cols <- rep("blue",100)
   model <- attr(x,'model')
-  map(x)
-  dev.new()
+  if (is.element(what,'map')) {
+    map(x)
+    points(lon(x),lat(x),lwd=3,cex=1.5)
+  }
+  
+  if (new & plot.type!="single") dev.new()
   
   par(bty="n",fig=c(0,1,0.1,1),mar=c(3,4.5,2,2))
-  ylab <- as.character(nam2expr(attr(x,'variable')))
-  eval(parse(text=paste("ylab <- expression(",ylab,
-               "*phantom(0)*(",unit,"))")))
-
+ 
 #  print("predict")
 #  y <- predict(x)
 #  print(dim(y))
@@ -231,7 +241,7 @@ plot.ds <- function(x, xlim=NULL, ylim=NULL, ...) {
     #print("Add other DS results")
     for (i in 1:ns)
       eval(parse(text=paste("y <- attr(x,'appendix.",i,"')",sep="")))
-      print(summary(y))
+      #print(summary(y))
       y.rng <- range(y.rng,y,na.rm=TRUE)
       x.rng <- range(x.rng,index(y),na.rm=TRUE)
   }
@@ -240,36 +250,179 @@ plot.ds <- function(x, xlim=NULL, ylim=NULL, ...) {
     ylim <- range(coredata(x),coredata(y0),y.rng,na.rm=TRUE)
   if (is.null(xlim))
     xlim <- range(index(x),index(y0),x.rng,na.rm=TRUE)
-  
-  plot.zoo(y0,col="black",type="b",xlab="",
-           ylab=ylab,xlim=xlim,ylim=ylim,pch=19)
-  #lines(model$fitted.values,lwd=3,col="grey")
-  lines(x,col="red",type="l",lwd=3)
 
+
+  ds <- list(obs=y0)
+  plot.zoo(y0,plot.type=plot.type,ylab=ylab,xlab=xlab,
+           main=main,xlim=xlim,ylim=ylim,lwd=1,type='b',pch=19)
+  par0 <- par()
+  lines(x,col="red",type="l",lwd=lwd)
+  
+  if (is.null(attr(x,'source'))) attr(x,'source') <- 'ESD'
+  if (is.na(attr(x,'source'))) attr(x,'source') <- 'ESD'
   legtext <- c("Observations",attr(x,'source')) 
   legcol <- c("black","red")
   
   if (ns > 0) {
-    print("Add other DS results")
+    #print("Add other DS results")
     for (i in 1:ns) {
       eval(parse(text=paste("y <- attr(x,'appendix.",i,"')",sep="")))
-      lines(zoo(coredata(y),order.by=index(y)),col=cols[i])
+      lines(zoo(coredata(y),order.by=index(y)),col=cols[i],lwd=lwd)
       legcol <- c(legcol,cols[i])
       legtext <- c(legtext,attr(y,'source'))
+      eval(parse(text=paste("ds$result.",i," <- attr(x,'appendix.",i,"')",sep="")))
     }
     
   } else  legcol <- c("black","red")
+
   
-  par(fig=c(0,1,0,0.2),new=TRUE, mar=c(0,0,0,0),xaxt="n",yaxt="n",bty="n")
-  plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
-  legend(0.05,0.5,substr(legtext,1,15),col=legcol,x.intersp = 0.5,adj = c(0,0.5),
-         lty=1,lwd=c(1,3,3),pch=c(19,NA,NA),horiz=TRUE,bty="n")
-  
-  par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
-      fig=c(0,1,0.1,1),new=TRUE)
-  #invisible(ds)
+  if (plot.type=="single") {
+    par(fig=c(0,1,0,0.1),new=TRUE, mar=c(0,0,0,0),xaxt="s",yaxt="s",bty="n")
+    plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
+    legend(0.01,0.95,paste(attr(x,'location'),": ",
+                           #attr(x,'aspect'),
+                           #attr(x,'longname')," - ",
+                           round(attr(x,'longitude'),2),"E/",
+                           round(attr(x,'latitude'),2),"N (",
+                           attr(x,'altitude')," masl)",sep=""),
+           bty="n",cex=0.6,ncol=3,text.col="grey40",lty=1,col=col)
+    par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
+        fig=c(0,1,0.1,1),new=TRUE)
+
+    par(fig=c(0,1,0.05,0.95),new=TRUE,mar=par0$mar,xaxt="n",yaxt="n",bty="n")
+    plot.zoo(x,plot.type=plot.type,type="n",ylab="",xlab="",xlim=xlim,ylim=ylim)
+  }
 }
+
+
+plot.eof <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=1,what=c("pc","eof","var"),...) {
+  if (inherits(x,"comb"))
+    plot.eof.comb(x,new=new,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...) else
+  if (inherits(x,"field"))
+    plot.eof.field(x,new=new,xlim=xlim,ylim=ylim,pattern=pattern,what=what,...)
+}
+
+
+
+
+plot.eof.field <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=1,what=c("pc","eof","var"),...) {
+  n <- pattern
+  what <- tolower(what)
+  #str(pattern); stop("HERE")
+  D <- attr(x,'eigenvalues')
+  tot.var <- attr(x,'tot.var')
+  var.eof <- 100* D^2/tot.var
   
+  if (length(grep('eof',what))>0) map(x,pattern=pattern) -> result else
+  if (length(grep('pc',what))>0) result <- as.station(x) else
+  if (length(grep('var',what))>0) result <- attr(x,'tot.var')
+    
+  if (new) dev.new()
+  par(cex.axis=0.75,cex.lab=0.7,cex.main=0.8)
+  ylab <- paste("PC",1:n)
+  main <- paste(attr(x,'longname'),n,"leading EOFs: ",
+                 round(sum(var.eof[1:n]),1),"% of variance")
+  #print(main)
+  if (length(grep('pc',what))>0) plot.zoo(x[,1:n],lwd=2,ylab=ylab,main=main,xlim=xlim,ylim=ylim)
+
+  if (length(grep('var',what))>0) plot.eof.var(x)
+  invisible(result)
+}
+
+
+plot.eof.comb <- function(x,new=TRUE,xlim=NULL,ylim=NULL,
+                          pattern=1,col=c("red"),what=c("pc","eof","var"),...) {
+  #print("plot.eof.comb")
+  n <- pattern
+  D <- attr(x,'eigenvalues')
+  tot.var <- attr(x,'tot.var')
+  var.eof <- 100* D^2/tot.var
+  if (length(grep('map',what))>0) map(x,pattern=pattern)
+
+  n.app <- attr(x,'n.apps')
+  col <- rep(col,n.app)
+  src <- rep("",n.app+1)
+  src[1] <- attr(x,'source')
+  if (new) dev.new()
+  par(bty="n",fig=c(0,1,0.1,1),mar=c(3,4,2,2),cex.main=0.8)
+  ylab <- paste("PC",n)
+  main <- paste("EOF: ",n,"accounts for",
+                round(var.eof[n],1),"% of variance")
+  
+  if (is.null(ylim)) {
+    ylim <- range(coredata(x[,n]))
+    for (i in 1:n.app) {
+      z <- attr(x,paste('appendix.',i,sep=""))
+      ylim <- range(c(ylim,coredata(z[,n])),na.rm=TRUE)
+    }  
+  }
+
+  if (is.null(xlim)) {
+    xlim <- range(index(x))
+    for (i in 1:n.app) {
+      z <- attr(x,paste('appendix.',i,sep=""))
+      xlim <- range(xlim,index(z))
+    }  
+  }
+
+  if (length(grep('pc',what))>0) {
+    plot.zoo(x[,n],lwd=2,ylab=ylab,main=main,sub=attr(x,'longname'),
+                                          xlim=xlim,ylim=ylim)
+    par0 <- par()
+    for (i in 1:n.app) {
+      z <- attr(x,paste('appendix.',i,sep=""))
+      lines(z[,n],col=col[i],lwd=2)
+      #print(attr(z,'source'))
+      src[i+1] <- attr(z,'source')
+    }
+    par(xaxt="n",yaxt="n",bty="n",fig=c(0,1,0,0.1),
+        mar=rep(0,4),new=TRUE)
+    plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
+    legend(0,1,src,col=c("black",col),lwd=2,ncol=4,bty="n",cex=0.7)
+    par(xaxt="n",yaxt="n",bty="n",fig=par0$fig,mar=par0$mar,new=TRUE)
+    plot.zoo(x[,n],type="n",xlab="",ylab="")
+  }
+  
+  if (length(grep('var',what))>0) plot.eof.var(x)
+  invisible(x)
+}
+
+plot.eof.var <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=20,...) {
+  n <- pattern
+  D <- attr(x,'eigenvalues')
+  tot.var <- attr(x,'tot.var')
+  var.eof <- 100* D^2/tot.var
+  nt <- length(index(x)) 
+  n.eff <- round(nt * (1.0-attr(x,'max.autocor'))/
+                      (1.0+attr(x,'max.autocor')))  
+  dD <- D*sqrt(2.0/n.eff)
+  main <- paste(attr(x,'longname'),n,"leading EOFs: ",
+                 round(sum(var.eof[1:n]),1),"% of variance")
+  if (is.null(xlim)) xlim <- c(0.7,n+0.3)
+  if (is.null(ylim)) ylim <- c(0,100)
+  if (new) dev.new()
+  par(bty="n",xaxt="n")
+  plot(var.eof,type="n",
+       main=main,ylab="Variance (%)",xlab="EOF order",xlim=xlim,ylim=ylim)
+  lines(cumsum(var.eof),lwd=3,col=rgb(1,0.8,0.8))
+  grid(nx=21,ny=12)
+  lines(var.eof,type="b",pch=19)
+  for (i in 1:length(var.eof)) {
+    lines(rep(i,2),100*c((D[i]+dD[i])^2/tot.var,(D[i]-dD[i])^2/tot.var),
+           lty=1,col="darkgrey")
+    lines(c(i-0.25,i+0.25),100*rep((D[i]+dD[i])^2/tot.var,2),
+          lwd=1,col="darkgrey")
+    lines(c(i-0.25,i+0.25),100*rep((D[i]-dD[i])^2/tot.var,2),
+          lwd=1,col="darkgrey")
+  }
+  points(var.eof)
+  points(var.eof,pch=20,cex=0.8,col="darkgrey")
+  attr(var.eof,'errorbar') <- cbind(100*(D-dD)^2/tot.var,100*(D+dD)^2/tot.var)
+  invisible(var.eof)
+}
+
+
+
 plot.field <- function(x,is=NULL,it=NULL,FUN="mean",...) {
   #print("plot.field")
   stopifnot(!missing(x),inherits(x,'field'))
@@ -440,7 +593,7 @@ plot.pca <- function(y,cex=1.5) {
   ylim <- 2*range(coredata(y[,1:m]),na.rm=TRUE)
   plot(y[,1]+0.5*ylim[2],lwd=1,ylim=ylim)
   col <- c("red","blue")
-  for (j in 1:m) lines(y[,j]+(1-j)*0.5*ylim[2],lwd=1,col=col[j])
+  for (j in 1:m) lines(y[,j+1]+(1-j)*0.5*ylim[2],lwd=1,col=col[j])
   
   invisible(a.T)
 }
@@ -573,16 +726,16 @@ plot.xval <- function(x,...) {
 
 
 plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
-                             envcol=c(1,0,0,0.2),...) {
+                             envcol=rgb(1,0,0,0.2),legend=TRUE,...) {
   #print("plot.dsensemble")
-  
   stopifnot(inherits(x,'dsensemble'))
   #print("subset") 
   if (!inherits(attr(x,'station'),'annual')) z <- subset(x,it=it) else
-                                             z <- x
-  #print("diagnose") 
+    z <- x
+  #print("diagnose")
+  #browser()
   diag <- diagnose(z,plot=FALSE)
-  #print("...")
+  #browser()
   y <- attr(z,'station')
 
   d <- dim(z)
@@ -590,22 +743,25 @@ plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
   #browser()
   index(y) <- year(y)
   #print("---")
-  
+
   pscl <- c(0.9,1.1)
   if (max(coredata(z),na.rm=TRUE) < 0) pscl <- rev(pscl)
+  args <- list(...)
+  #print(names(args))
+  ixl <- grep('xlim',names(args))
+  if (length(ixl)==0) xlim <- range(year(z)) else
+                      xlim <- args[[ixl]]
+  iyl <- grep('ylim',names(args))
+  if (length(iyl)==0) ylim <- pscl*range(coredata(z),na.rm=TRUE) else
+                      ylim <- args[[iyl]]  
   #print("...")
-  plot(y,type="b",pch=19,
-       xlim=range(year(z)),
-       ylim=pscl*range(coredata(z),na.rm=TRUE))
+  plot(y,type="b",pch=19,xlim=xlim,ylim=ylim)
   grid()
   usr <- par()$usr; mar <- par()$mar; fig <- par()$fig
   t <- index(z)
   
   if (pts) for (i in 1:d[2]) points(year(t),coredata(z[,i]),pch=19,col="red",cex=0.3)
 
-  lines(diag$mu,col="red",lwd=3)
-  lines(diag$q05,col="red",lty=2)  
-  lines(diag$q95,col="red",lty=2)
 
   # Produce a transparent envelope
   nt <- length(index(z))
@@ -617,10 +773,14 @@ plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
     qp2 <- qnorm(ii/50,mean=coredata(diag$mu),sd=coredata(diag$si))
     ci <- c(qp1,rev(qp2))
     #print(c(length(ci),length(t2)))
-    polygon(t2,ci,col=rgb(1,0,0,0.05),border=NA)  # transparency not good for hard copies
+    polygon(t2,ci, col= envcol, ,border=NA)  # transparency not good for hard copies
     #polygon(t2,ci,col=col[ii],border=NA)
   }
   #polygon(t2,c(q95,rev(q05)),col=rgb(0,1,0,0.2),border=NA)
+  lines(zoo(diag$mu,order.by=year(diag$mu)),col=rgb(1,0.7,0.7),lwd=3)
+  lines(zoo(diag$q05,order.by=year(diag$q05)),col=rgb(0.5,0.5,0.5),lty=2)  
+  lines(zoo(diag$q95,order.by=year(diag$q95)),col=rgb(0.5,0.5,0.5),lty=2)
+  #browser()
   lines(y,type="b",pch=19)
 
   # statistics: past trends 
@@ -645,8 +805,12 @@ plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
 
   #str(diag$y); browser()
   index(diag$y) <- year(diag$y)
-  points(diag$y[diag$above | diag$below],col="grey")
-
+  #points(diag$y,cex=0.5,col="green")
+  #points(diag$y[diag$above | diag$below],col="grey")
+  outside <- diag$above | diag$below
+  points(zoo(coredata(diag$y)[outside],order.by=year(diag$y)[outside]),col="grey")
+  #browser()
+  
   if (showci) {
     par(fig=c(0.15,0.4,0.7,0.8),new=TRUE, mar=c(0,0,0,0),xaxt="n",yaxt="n",bty="n",
         cex.main=0.75,xpd=NA,col.main="grey")
@@ -664,12 +828,12 @@ plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
     hist(diag$deltagcm,freq=FALSE,col="grey80",lwd=2,border="grey",
          ,main="Obs. and simulated trends",
         xlab="",ylab="",ylim=c(0,1.2*max(h$density)))
-    lines(seq(min(diag$deltagcm),max(diag$deltagcm),by=0.01),
-         dnorm(seq(min(diag$deltagcm),max(diag$deltagcm),by=0.01),
+    lines(seq(min(diag$deltagcm),max(diag$deltagcm),length=300),
+         dnorm(seq(min(diag$deltagcm),max(diag$deltagcm),length=300),
                mean=mean(diag$deltagcm),sd=sd(diag$deltagcm)),
          col="grey20",lwd=7)
-    lines(seq(min(diag$deltagcm),max(diag$deltagcm),by=0.01),
-         dnorm(seq(min(diag$deltagcm),max(diag$deltagcm),by=0.01),
+    lines(seq(min(diag$deltagcm),max(diag$deltagcm),length=300),
+         dnorm(seq(min(diag$deltagcm),max(diag$deltagcm),length=300),
                mean=mean(diag$deltagcm),sd=sd(diag$deltagcm)),
          col="pink",lwd=5)
   #lines(h$mids,h$density)
@@ -677,18 +841,21 @@ plot.dsensemble <-  function(x,pts=FALSE,showci=TRUE,showtrend=TRUE,it=0,
   } 
   
   # finished plotting
-  par(fig=c(0.5,0.9,0,0.15),new=TRUE, mar=c(0,0,0,0),xaxt="n",yaxt="n",bty="n")
-  plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
-  legend(0.05,0.90,c(paste("Past trend:",round(diag$deltaobs,2)),
-                    paste(diag$robs,'%'),
-                    paste(diag$outside,"observations"),
-                    "p-value: "),
-          bty="n",cex=0.7,text.col="grey40")
-  legend(0.5,0.90,c(expression(degree*C/d*e*c*a*d*e),
-                    "ensemble trends > obs.",
-                    "outside ensemble 90% conf.int.",
-                    paste(round(100*pbinom(diag$outside,size=diag$N,prob=0.1)),"%")),
-          bty="n",cex=0.7,text.col="grey40")  
+
+  if (legend) {
+    par(fig=c(0.5,0.9,0,0.15),new=TRUE, mar=c(0,0,0,0),xaxt="n",yaxt="n",bty="n")
+    plot(c(0,1),c(0,1),type="n",xlab="",ylab="")
+    legend(0.05,0.90,c(paste("Past trend:",round(diag$deltaobs,2)),
+                      paste(diag$robs,'%'),
+                      paste(diag$outside,"observations"),
+                      "p-value: "),
+            bty="n",cex=0.7,text.col="grey40")
+    legend(0.5,0.90,c(expression(degree*C/d*e*c*a*d*e),
+                      "ensemble trends > obs.",
+                      "outside ensemble 90% conf.int.",
+                      paste(round(100*pbinom(diag$outside,size=diag$N,prob=0.1)),"%")),
+            bty="n",cex=0.7,text.col="grey40")
+}
   par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
       fig=c(0,1,0.1,1),new=TRUE)
   par(fig=fig,new=TRUE, mar=mar)

@@ -26,7 +26,7 @@ diagnose.eof <- function(x) {
 
 diagnose.comb.eof <- function(x) {
 
-  ACF <- function(x) acf(x,plot=FALSE)$acf[2]
+  ACF <- function(x) acf(x,plot=FALSE,na.action=na.omit)$acf[2]
   sign <- function(x,y) {z<-x*y; z[z<0] <- -1; z[z>0] <- 1; z}
   
   stopifnot(!missing(x), inherits(x,"eof"),inherits(x,"comb"))
@@ -47,16 +47,16 @@ diagnose.comb.eof <- function(x) {
 
     # Extract a comon period:
     X <- merge(Y,y,all=FALSE)
-    Ym <- apply(coredata(X),2,mean)
+    Ym <- apply(coredata(X),2,mean,na.rm=TRUE)
     #print(Ym)
     #plot(Ym)
-    Ys <- apply(coredata(X),2,sd)
+    Ys <- apply(coredata(X),2,sd,na.rm=TRUE)
     AR <- apply(coredata(X),2,ACF)
     dm[i,] <- Ym[1:m] - Ym[(m+1):(2*m)]
     # ratio: GCM/original
     # The problem is when the denominator is close to zero...
-    sr[i,] <- (1 + Ys[(m+1):(2*m)])/(1 + Ys[1:m])
-    ar[i,] <- (1 + AR[(m+1):(2*m)])/(1 + AR[1:m])*sign(AR[(m+1):(2*m)],AR[1:m])
+    sr[i,] <- (0.01 + Ys[(m+1):(2*m)])/(0.01 + Ys[1:m])
+    ar[i,] <- (0.01 + AR[(m+1):(2*m)])/(0.01 + AR[1:m])*sign(AR[(m+1):(2*m)],AR[1:m])
     if (!is.null(attr(z,'source'))) rowname[i] <- attr(z,'source') else
     if (!is.null(attr(z,'model_id'))) rowname[i] <- attr(z,'model_id') 
   }
@@ -98,6 +98,11 @@ diagnose.ds <- function(x,plot=FALSE) {
   eof <- attr(x,'eof')
   if (inherits(eof,'comb')) bias.diag <- diagnose(eof) else
                             bias.diag <- NULL
+
+  spectrum(coredata(y),plot=FALSE) -> s
+  sp <- data.frame(y=log(s$spec),x=log(s$freq))
+  beta <- -summary(lm(y ~ x, data=sp))$coefficient[2]
+  beta.error <- summary(lm(y ~ x, data=sp))$coefficient[4]
   
   if (plot) {
     plot(xval)
@@ -105,7 +110,8 @@ diagnose.ds <- function(x,plot=FALSE) {
     dev.new()
     par(bty="n",mfcol=c(3,2))
     plot(y)
-    plot(acf(y))
+    
+    acf(y) -> ar
 
     plot(z,y)
     spectrum(y)
@@ -117,7 +123,8 @@ diagnose.ds <- function(x,plot=FALSE) {
       plot(attr(x,'diagnose'))
   }
   
-  diagnostics <- list(residual=y,anova=anova,xval=xval,bias.diag=bias.diag)
+  diagnostics <- list(residual=y,anova=anova,xval=xval,bias.diag=bias.diag,
+                      ar1=ar$acf[2],beta=beta, H=(beta+1)/2, beta.error=beta.error)
   return(diagnostics)
 }
 
@@ -173,11 +180,12 @@ diagnose.dsensemble <- function(x,plot=TRUE,type='target',...) {
   t <- index(z)
   y <- attr(x,'station')
   
-  # statistics: past trends 
-  i1 <- is.element(year(y),year(z))
-  i2 <- is.element(year(z),year(y))
+  # statistics: past trends
+  #browser()
+  i1 <- is.element(year(y)*100 + month(y),year(z)*100 + month(z))
+  i2 <- is.element(year(z)*100 + month(z),year(y)*100 + month(y))
   obs <- data.frame(y=y[i1],t=year(y)[i1])
-  #print(summary(gcm))
+  #print(summary(obs)); print(sum(i1)); print(sum(i2)); browser()
   deltaobs <- lm(y ~ t,data=obs)$coefficients[2]*10  # deg C/decade
   deltagcm <- rep(NA,d[2])
   for (j in 1:d[2]) {
@@ -195,6 +203,7 @@ diagnose.dsensemble <- function(x,plot=TRUE,type='target',...) {
   # number of points outside conf. int. (binom)
   above <- y[i1] > q95[i2]
   below <- y[i1] < q05[i2]
+  #browser()
   outside <- sum(above) + sum(below)
   N <- sum(i1)
   
@@ -218,11 +227,11 @@ diagnose.dsensemble <- function(x,plot=TRUE,type='target',...) {
   }
   diag <- list(robs=robs,deltaobs=deltaobs,deltagcm=deltagcm,
                outside=outside,above=above,below=below,
-               y=y[i1],N=N,
+               y=y[i1],N=N,i1=i1,
                mu=zoo(mu,order.by=index(x)),
                si=zoo(si,order.by=index(x)),
-               q05=zoo(q05,order.by=index(t)),
-               q95=zoo(q95,order.by=index(t)))
+               q05=zoo(q05,order.by=index(x)),
+               q95=zoo(q95,order.by=index(x)))
   attr(diag,'history') <- history.stamp(x)
 
   invisible(diag)

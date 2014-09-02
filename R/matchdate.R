@@ -10,16 +10,24 @@ matchdate <- function(x,it) {
       it <- c(paste(it,'-01-01',sep=''),paste(it,'-12-31',sep='')) else
     if (nc[1]==7) it <- paste(it,'-01',sep='')
     it <- as.Date(it)
-  }
-  if (inherits(it,c('field','station'))) it <- index(it)
+  } 
+  if (inherits(it,c('field','station','zoo'))) it <- index(it)
+  #print(c(t[1],it[1]));   print(c(class(t),class(it)))
+  
   # Convert indeces all to 'Date':
-  if ( (is.numeric(t)) |
-     ( (is.character(t)) & (nchar(t[1])==4) ) ) t <- as.Date(paste(t,'-01-01'),sep='')
-  if ( (is.numeric(it)) |
-     ( (is.character(it)) & (nchar(it[1])==4) ) ) it <- as.Date(paste(it,'-01-01'),sep='')
+  # The time index of x:
+  #browser()
+  if ( (is.numeric(t)) | (is.integer(t)) |
+     ( (is.character(t)) & (nchar(t[1])==4) ) ) t <- as.Date(paste(t,'-01-01',sep='')) 
   if ( (is.character(t)) & (nchar(t[1])==10) )  t <- as.Date(t)
-  if ( (is.character(it)) & (nchar(it[1])==10) )  it <- as.Date(it)
 
+  # The time index to match:
+  if ( (is.numeric(it)) | (is.integer(it)) |
+     ( (is.character(it)) & (nchar(it[1])==4) ) ) it <- as.Date(paste(it,'-01-01',sep='')) 
+  if ( (is.character(it)) & (nchar(it[1])==10) )  it <- as.Date(it)
+  
+  #print(c(t[1],it[1]))
+  
   if (length(it)>2) {
     y <- x[is.element(t,it),]
   } else if (length(it)==2) {
