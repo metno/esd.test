@@ -54,7 +54,7 @@ diagram.ds <- function(x,...) {
 }
 
 
-colscal <- function(cols="bwr",n=100,test=FALSE) {
+colscal <- function(n=30,col="bwr",test=FALSE) {
 
   test.col <- function(r,g,b) {
     dev.new()
@@ -73,22 +73,22 @@ colscal <- function(cols="bwr",n=100,test=FALSE) {
   if (n < 30) sg <- s*2.5 else sg <- s
   n1 <- g0; n2 <- n-n1
 
-  if (cols=="bwr") {
+  if (col=="bwr") {
     r <- exp(s*(x - r0)^2)^0.5 * c(seq(0,1,length=n1),rep(1,n2))
     g <- exp(sg*(x - g0)^2)^2
     b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0,length=n1))
     col <- rgb(r,g,b)
-  } else if (cols=="rwb") {
+  } else if (col=="rwb") {
     r <- exp(s*(x - r0)^2)^0.5 * c(seq(0,1,length=n1),rep(1,n2))
     g <- exp(sg*(x - g0)^2)^2
     b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0,length=n1))
     col <- rgb(b,g,r)
-  } else if (cols=="faint.bwr") {
+  } else if (col=="faint.bwr") {
     r <- exp(s*(x - r0)^2)^0.5 * c(seq(0.5,1,length=n1),rep(1,n2))
     g <- min(exp(sg*(x - g0)^2)^2 + 0.5,1)
     b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0.5,length=n1))
     col <- rgb(r,g,b)
-  } else if (cols=="faint.rwb") {
+  } else if (col=="faint.rwb") {
     r <- exp(s*(x - r0)^2)^0.5 * c(seq(0.5,1,length=n1),rep(1,n2))
     g <- min(exp(sg*(x - g0)^2)^2 + 0.5,1)
     b <- exp(s*(x - b0)^2)^0.5 * c(rep(1,n2),seq(1,0.5,length=n1))
@@ -115,7 +115,7 @@ cumugram <- function(x,it=NULL,...) {
   #print(yrs)
   ny <- length(yrs)
   j <- 1:ny
-  col <- rgb(j/ny,abs(sin(pi*j/ny)),(1-j/ny))
+  col <- rgb(j/ny,abs(sin(pi*j/ny)),(1-j/ny),0.3)
   class(x) <- "zoo"
 
   if ( (attr(x,'unit') == "deg C") | (attr(x,'unit') == "degree Celsius") )

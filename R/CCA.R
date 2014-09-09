@@ -103,7 +103,7 @@ CCA.eof <- function(Y,X,i.eofs=1:8) {
 
   class(cca) <- c("cca", class(Y)[2])
   
-  if (round(R[1],2) != round(cor(w.m[,1],v.m[,1]),1)) {
+  if (round(R[1],2) != round(cor(w.m[,1],v.m[,1]),2)) {
     print("WARNING: The correlations are not internally consistent!")
     print(paste("CCA: leading canonical correlation=", round(R[1],2),
                 " actual correlation=",round(cor(w.m[,1],v.m[,1]),2)))

@@ -4,5 +4,9 @@ is.T <- function(x) {
 }
 
 is.precip <- function(x) {
-  return(sum(is.element(tolower(attr(x,'variable')),c('pr','precip','rain','precipitation')))>0)
+  return( (sum(is.element(tolower(varid(x)),
+                        c('pr','precip','rain','precipitation',
+                          'mu','fw','f[w]')))>0) |
+          (sum(is.element(tolower(unit(x)),
+                          c('mm/day','mm/moth','mm/year','mm')))))
 }

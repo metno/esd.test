@@ -132,16 +132,25 @@ as.station.data.frame <-  function (x, loc = NA, param = NA, unit = NA,
 }
 
 as.station.ds <- function(x) {
-  y <- zoo(coredata(x),order.by=index(x))
-  if (!is.null(attr(x,"original_data")))
-    y <- attrcp(attr(x,"original_data"),y) else
-    y <- attrcp(x,y)
+  if (inherits(x,'pca')) {
+    y <- as.station.pca(x)
+  } else {
+    y <- zoo(coredata(x),order.by=index(x))
+    if (!is.null(attr(x,"original_data")))
+      y <- attrcp(attr(x,"original_data"),y) else
+      y <- attrcp(x,y)
+    if (!is.null(attr(x,"original_data")))
+      class(y) <- class(attr(x,"original_data")) else
+      class(y) <-class(x)
+  }
   attr(y,'history') <- history.stamp(x)
   attr(y,'method') <- attr(x,'method')
   attr(y,'info') <- attr(x,'info')
-  if (!is.null(attr(x,"original_data")))
-    class(y) <- class(attr(x,"original_data")) else
-    class(y) <-class(x)
+  return(y)
+}
+
+as.station.pca <- function(x) {
+  y <- pca2station(x)
   return(y)
 }
 
@@ -899,6 +908,11 @@ as.pattern.corfield <- function(x) {
 }
 
 as.eof <- function(x,...) UseMethod("as.eof")
+
+as.eof.zoo <- function(x,...) {
+  class(x) <- c('eof','zoo')
+  return(x)
+}
 
 as.eof.eof <-function(x,iapp=NULL) {
   if (inherits(x,'comb')) x <- as.eof.comb(x,iapp) 

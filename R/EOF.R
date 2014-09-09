@@ -481,14 +481,15 @@ PCA.station <- function(X,neofs=20,na.action='fill',verbose=FALSE) {
   attr(y,'sum.eigenv') <- sum(pca$d)
   attr(y,'tot.var') <- sum(pca$d^2)
   attr(y,'aspect') <- 'anomaly'
-  attr(y,'history') <- history.stamp(x)
-  class(y) <- c("pca","station","zoo")
+  attr(y,'history') <- history.stamp(X)
+  class(y) <- c("pca",class(X))
   invisible(y)
 }
 
 # Transfer PCA back to station data
 pca2station <- function(X,lon=NULL,lat=NULL,anomaly=FALSE) {
-  stopifnot(!missing(X), !inherits(X,"pca"))
+  stopifnot(!missing(X), inherits(X,"pca"))
+  if (inherits(X,'ds')) class(X) <- class(X)[-1]
   #print('pca2station')
   
   pca <- X
@@ -497,6 +498,7 @@ pca2station <- function(X,lon=NULL,lat=NULL,anomaly=FALSE) {
   d <- dim(U)
   W <- attr(pca,'eigenvalues')
   V <- coredata(pca)
+  V[!is.finite(V)] <- 0
   #str(U); str(W); str(V)
   x <-U %*% diag(W) %*% t(V)
   #str(x)
@@ -519,7 +521,7 @@ pca2station <- function(X,lon=NULL,lat=NULL,anomaly=FALSE) {
   attr(x,'longitude') <- attr(pca,'longitude')
   attr(x,'latitude') <- attr(pca,'latitude')
   attr(x,'history') <- history.stamp(pca)
-  class(x) <- c("station",cls[-1])
+  class(x) <- cls[-1]
   #print("HERE")
   invisible(x)
 }

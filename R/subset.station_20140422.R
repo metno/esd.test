@@ -8,7 +8,7 @@ subset.station <- function(x,it = NULL,is=NULL,loc=NULL , param = NULL,
                            alt = NULL, cntr = NULL, src = NULL , nmin = NULL,
                            verbose=FALSE) {
   ## browser()
-  if (inherits(it,c('field','station','zoo'))) {
+  if (inherits(it,c('field','station'))) {
     ## Match the times of another esd-data object
     print('field/station')
     x2 <- matchdate(x,it)
@@ -92,13 +92,10 @@ station.subset <- function(x,it=NULL,is=NULL,verbose=FALSE) {
     ## browser()
     ## get the subset indices in ii
     if ((class(it)=="numeric") | (class(it)=="integer")) {    
-        if ( ((min(it,na.rm=TRUE) > 0) & (max(it,na.rm=TRUE) < 13)) &
-             (inherits(x,"month") | inherits(x,"season")) ) {## it is a month or season
-          # REB 23.04.14: need to handle monthly and seasonal object differently
-            if (inherits(x,"month")) it.mo <- it else
-            if (inherits(x,"season")) it.mo <- c(1,4,7,10)[it]
+        if ( ((min(it,na.rm=TRUE) > 0) & (max(it,na.rm=TRUE) < 13)) ) {## it is a month or season
+            it.mo <- it
             ii <- is.element(mo,it.mo)
-        }  #
+        }  # This is not a very good way to do this...
         else if ((min(it,na.rm=TRUE) > 0) & (max(it,na.rm=TRUE) < 31)) {## it is a day
             it.dy <- it
             ii <- is.element(dy,it.dy)
@@ -111,19 +108,6 @@ station.subset <- function(x,it=NULL,is=NULL,verbose=FALSE) {
     else if (inherits(it,c("Date","yearmon"))) {       
 #        ii <- is.element(t,it)
         ii <- (t >= min(it)) & (t <= max(it))
-    }
-    else if (is.character(it)) { ## added AM 10-06-2014
-        if (sum(is.element(tolower(substr(it,1,3)),tolower(month.abb)))>0) {
-            ii <- is.element(month(x),(1:12)[is.element(tolower(month.abb),tolower(substr(it,1,3)))])
-            y <- x[ii,is]
-        } else
-            if (sum(is.element(tolower(it),names(season.abb())))>0) {
-                if (verbose) print("Seasonally selected")
-                if (verbose) print(table(month(x)))
-                if (verbose) print(eval(parse(text=paste('season.abb()$',it,sep=''))))
-                ii <- is.element(month(x),eval(parse(text=paste('season.abb()$',it,sep=''))))
-                y <- x[ii,is]
-            }
     }
     else ## keep all values
         ii <- 1:length(t)

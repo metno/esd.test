@@ -178,7 +178,7 @@ map2sphere <- function(x,n=30,lonR=NULL,latR=NULL,axiR=0,
   text(0.72,0.002,unit,pos=4)  
   
   #result <- data.frame(x=colMeans(Y),y=colMeans(Z),z=c(map))
-  results <- NULL # For now...
+  result <- NULL # For now...
   invisible(result)
 }
 

@@ -61,7 +61,7 @@ gridbox <- function(x,cols,density = NULL, angle = 45) {
 #  return(angle)
 #}
 
-map2sphere <- function(x,n=30,lonR=NULL,latR=NULL,axiR=0,
+map2sphere <- function(x,n=30,lonR=NULL,latR=NULL,axiR=0,new=TRUE,
                        what=c("fill","contour"),gridlines=TRUE,cols=NULL) {
 
   # Data to be plotted:
@@ -138,7 +138,8 @@ map2sphere <- function(x,n=30,lonR=NULL,latR=NULL,axiR=0,
   dim(X) <- d; dim(Y) <- d; dim(Z) <- d
   #print(dim(rbind(X,Z)))
 
-# Plot the results:  
+# Plot the results:
+  if (new) dev.new()
   par(bty="n",xaxt="n",yaxt="n")
   plot(x,z,pch=".",col="grey90",xlab="",ylab="")
 

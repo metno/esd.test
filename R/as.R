@@ -132,18 +132,30 @@ as.station.data.frame <-  function (x, loc = NA, param = NA, unit = NA,
 }
 
 as.station.ds <- function(x) {
-  y <- zoo(coredata(x),order.by=index(x))
-  if (!is.null(attr(x,"original_data")))
-    y <- attrcp(attr(x,"original_data"),y) else
-    y <- attrcp(x,y)
+  if (inherits(x,'pca')) {
+    class(x) <- class(x)[-1]
+    y <- as.station.pca(x)
+  } else {
+    y <- zoo(coredata(x),order.by=index(x))
+    if (!is.null(attr(x,"original_data")))
+      y <- attrcp(attr(x,"original_data"),y) else
+      y <- attrcp(x,y)
+    if (!is.null(attr(x,"original_data")))
+      class(y) <- class(attr(x,"original_data")) else
+      class(y) <-class(x)
+  }
   attr(y,'history') <- history.stamp(x)
   attr(y,'method') <- attr(x,'method')
   attr(y,'info') <- attr(x,'info')
-  if (!is.null(attr(x,"original_data")))
-    class(y) <- class(attr(x,"original_data")) else
-    class(y) <-class(x)
   return(y)
 }
+
+as.station.pca <- function(x) {
+  y <- pca2station(x)
+  return(y)
+}
+
+
 
 as.station.list <- function(x) {
   #print("as.station.ds")
@@ -268,6 +280,20 @@ as.station.eof <- function(x,pattern=1:10) {
   class(y)[2] <- class(x)[2]
   if (dim(y)[2]==1) y <- subset(y,is=1)
   invisible(y)
+}
+
+
+as.pca <- function(x) UseMethod("as.pca")
+
+as.pca.ds <- function(x) {
+  stopifnot(inherits(x,'pca'))
+  class(x) <- class(x)[-1]
+  return(x)
+}
+
+as.pca.station <- function(x) {
+  y <- PCA(x)
+  return(y)
 }
 
 

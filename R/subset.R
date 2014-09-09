@@ -376,6 +376,9 @@ subset.eof <- function(x,it=NULL,is=NULL,verbose=FALSE) {
 }
 
 subset.cca <- function(x,it=NULL,is=NULL) {
+  if (!is.null(is))  {
+    x <- subset.pattern(x)
+  }
   x
 }
 
@@ -383,19 +386,43 @@ subset.mvr <- function(x,it=NULL,is=NULL) {
   x
 }
 
+subset.pattern <- function(x,is) {
+  if (is.list(is)) {
+    y <- attr(x,'pattern')
+    lons <- attr(x,'longitude')
+    lats <- attr(x,'latitude')
+    nms <- substr(tolower(names(is)),1,3)
+    if (sum(is.element(nms,'lon'))>0)
+      ix <- (lons >= min(is[[is.element(nms,'lon')]])) &
+            (lons >= max(is[[is.element(nms,'lon')]])) else
+      ix <- is.finite(lons)
+    if (sum(is.element(nms,'lat'))>0)
+      iy <- (lons >= min(is[[is.element(nms,'lat')]])) &
+            (lons >= max(is[[is.element(nms,'lat')]])) else
+      iy <- is.finite(lats)
+    y[ix,iy] -> attr(x,'pattern')
+    lons -> attr(x,'longitude')
+    lats -> attr(x,'latitude')
+  }
+  return(x)
+}
+
 subset.pca <- function(x,it=NULL,is=NULL) {
   x
 }
 
-subset.trend <- function(x,it=NULL,is=NULL) {
-  x
-}
 
 subset.corfield <- function(x,it=NULL,is=NULL) {
   x
 }
 
 subset.ds <- function(x,it=NULL,is=NULL) {
+  y <- x
+  if (!is.null(it)) {
+  }
+  if (!is.null(is))  {
+    x <- subset.pattern(x)
+  }
   x
 }
 

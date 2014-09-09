@@ -253,7 +253,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
     if (verbose) print(paste("i=",i))
     z <- subset(Y,is=i)
     #str(z)
-    if (verbose) {print(class(z)); print(names(attributes(z)))}
+    #if (verbose) {print(class(z)); print(names(attributes(z)))}
     if (inherits(X,'eof')) {
       if (verbose) print("The predictor is some kind of EOF-object")
       # Call different functions, depending on the class of X:
@@ -274,7 +274,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
                            rmtrend=rmtrend,eofs=eofs,
                            area.mean.expl=area.mean.expl,
                            verbose=verbose,...)
-          if (verbose) print("+++")
+          #if (verbose) print("+++")
       }
       } else if (inherits(X,'field')) {
           if (verbose) print("the predictor is an field-object")
@@ -289,7 +289,7 @@ DS.station <- function(y,X,biascorrect=FALSE,mon=NULL,
     xval <- crossval(ds)
     attr(ds,'evaluation') <- zoo(xval)
 
-    if (verbose) print(names(attributes(ds)))
+    #if (verbose) print(names(attributes(ds)))
     if (ns==1) dsall <- ds else {
       if (i==1) dsall <- list(ds.1=ds) else
                 eval(parse(text=paste('dsall$ds.',i,' <- ds',sep='')))
@@ -602,10 +602,11 @@ DS.spell <- function(y,X,threshold=1,biascorrect=FALSE,
 
 
 DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
-                   method="MVR",swsm=NULL,
-                   rmtrend=TRUE,...) {
+                   method="lm",swsm=NULL,eofs=1:10,
+                   rmtrend=TRUE,verbose=FALSE,...) {
+  print('DS.pca')
   cls <- class(y)
-  Z <- y 
+  Z <- y; pca <- X
   nattr <- softattr(y)
 
   if (rmtrend) {
@@ -619,61 +620,95 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
   
   # synchronise the two zoo objects through 'merge' (zoo)
   dy <- dim(y)
-  if (is.null(dy)) dy <- c(length(y),1)
-  if (dy[2]>1) colnames(y) <- paste("y",1:dy[2],sep=".")
   dx <- dim(X)
-  if (is.null(dx)) dx <- c(length(x),1)
-  if (dx[2]>1) colnames(X) <- paste("X",1:dx[2],sep=".") 
-  #colnames(y) <- paste("y",1:dim(y)[2],sep=".")
-  #colnames(X) <- paste("X",1:dim(y)[2],sep=".")
-  yX <- merge(y,X,all=FALSE)
-
-  vars <- names(yX)
-  ys <- vars[grep('y',vars)]
-  Xs <- vars[grep('X',vars)]
-  ix <- is.element(vars,Xs)
-  iy <- is.element(vars,ys)
-  x <- zoo(coredata(yX[,ix]),order.by=index(yX))
-  y <- zoo(coredata(yX[,iy]),order.by=index(yX))
-  class(y) <- cls
 
   # Use method for downscaling
   #str(y); str(X)
   if (verbose) print(method)
-  model <- eval(parse(text=paste(method,"(y,x)",sep="")))
-  #print(class(model)); str(model)
+  if (toupper(method)=='mvr') {
+    
+    if (is.null(dy)) dy <- c(length(y),1)
+    if (dy[2]>1) colnames(y) <- paste("y",1:dy[2],sep=".")
+    if (is.null(dx)) dx <- c(length(x),1)
+    if (dx[2]>1) colnames(X) <- paste("X",1:dx[2],sep=".") 
+  #colnames(y) <- paste("y",1:dim(y)[2],sep=".")
+  #colnames(X) <- paste("X",1:dim(y)[2],sep=".")
+    yX <- merge(y,X,all=FALSE)
 
-  # REconstruct the entire data, and then apply the PCA to this
-  V <- predict(model); W <- attr(Z,'eigenvalues')
-  U <- attr(Z,'pattern')
-  UWV <- U %*% diag(W) %*% t(V)
-  pca <- svd(UWV)
-  #str(pca)
-  ds <- zoo(pca$v,order.by=index(X))
-  
-  
-  for (i in 1:length(nattr))
-    attr(ds,nattr[i]) <- attr(y,nattr[i])
-  
-  model$fitted.values <- zoo(model$fitted.values,order.by=index(X)) +
+    vars <- names(yX)
+    ys <- vars[grep('y',vars)]
+    Xs <- vars[grep('X',vars)]
+    ix <- is.element(vars,Xs)
+    iy <- is.element(vars,ys)
+    x <- zoo(coredata(yX[,ix]),order.by=index(yX))
+    y <- zoo(coredata(yX[,iy]),order.by=index(yX))
+    class(y) <- cls
+
+    print('WARNING: does not operate on combined objects')
+    model <- eval(parse(text=paste(method,"(y,x)",sep="")))
+      # Reconstruct the entire data, and then apply the PCA to this
+    V <- predict(model); W <- attr(Z,'eigenvalues')
+    U <- attr(Z,'pattern')
+    UWV <- U %*% diag(W) %*% t(V)
+    pca <- svd(UWV)
+    #str(pca)
+    ds <- zoo(pca$v,order.by=index(X))
+    model$fitted.values <- zoo(model$fitted.values,order.by=index(X)) +
     attr(Z,'mean') + offset  # REB 04.12.13: included attr(Z,'mean') in
                              # addition to offset
-  model$calibration.data <- X
-  class(model$fitted.values) <- class(Z)
-  attr(ds,'quality') <- var(coredata(model$fitted.values))/var(y,na.rm=TRUE)
-  attr(ds,'variable') <- attr(Z,'variable')
-  attr(ds,'model') <- model
+    model$calibration.data <- X
+    class(model$fitted.values) <- class(Z)
+    attr(ds,'model') <- model
+    attr(ds,'quality') <- var(coredata(model$fitted.values))/var(y,na.rm=TRUE)
+    attr(ds,'eigenvalues') <- pca$d
+    attr(ds,'sum.eigenv') <- sum(pca$d)
+    attr(ds,'pattern') <- pca$u
+  } else {
+      # treat each PC as a station
+    if (verbose) print('Prepare output data')
+    y.out <- matrix(rep(NA,dx[1]*dy[2]),dx[1],dy[2])
+    # If common EOFs, then accomodate for the additional predictions
+    if (!is.null(attr(z,'appendix.1')))
+      y.app <- attr(z,'appendix.1')
+
+    if (verbose) print(eofs)
+    # For each PC
+    
+    for (i in 1:dx[2]) {
+      ys <- as.station(zoo(y[,i]),loc=loc(y)[i],param=varid(y)[i],
+                       unit=unit(y)[i],lon=lon(y)[i],lat=lat(y)[i],
+                       alt=alt(y)[i],cntr=cntr(y)[i],stid=stid(y)[i])
+      class(ys) <- class(y)[-1]
+      z <- DS(ys,X,biascorrect=biascorrect,
+              method=method,swsm=swsm,eofs=eofs,
+              rmtrend=rmtrend,verbose=verbose,...)
+      #plot(subset(ys,is=i)); lines(zoo(z,order.by=year(z))); browser()
+      attr(z,'mean') <- 0
+      zp <- predict(z,newdata=X)
+      y.out[,i] <- coredata(zp)
+      #print(summary(y.out[,i]))
+      # If common EOFs, then also capture the predictions:
+      if (!is.null(attr(z,'appendix.1'))) {
+        y.app[,i] <- attr(zp,'appendix.1.')
+      }
+    }
+    ds <- zoo(y.out,order.by=index(X))
+    ds <- attrcp(y,ds)
+    attr(ds,'eigenvalues') <- attr(Z,'eigenvalues')
+    attr(ds,'sum.eigenv') <- attr(Z,'sum.eigenv')
+    attr(ds,'pattern') <- attr(Z,'pattern')
+ }
+  #print(class(model)); str(model)
+  attr(ds,'variable') <- varid(Z)
   attr(ds,'mean') <- attr(Z,'mean') + offset
   attr(ds,'max.autocor') <- attr(Z,'max.autocor')
-  attr(ds,'eigenvalues') <- pca$d
-  attr(ds,'sum.eigenv') <- sum(pca$d)
   attr(ds,'tot.var') <- attr(Z,'tot.var')
-  attr(ds,'pattern') <- pca$u
-  #attr(ds,'dimensions') <- c(du[1],du[2])
-  attr(ds,'longitude') <- attr(Z,'longitude')
-  attr(ds,'latitude') <- attr(Z,'latitude')
+   #attr(ds,'dimensions') <- c(du[1],du[2])
+  attr(ds,'longitude') <- lon(Z)
+  attr(ds,'latitude') <- lat(Z)
 #  attr(ds,'source') <- paste(attr(Z,'source'),attr(X,'source'),sep="-")
   attr(ds,'source') <- attr(X,'source')
+  attr(ds,'history') <- history.stamp(y)
   attr(ds,'call') <- match.call()
   class(ds) <- c("ds",cls)
   invisible(ds)
@@ -690,7 +725,10 @@ biasfix <- function(x) {
     eval(parse(text=paste("z <- attr(x,'appendix.",i,"')",sep="")))
     Z <- coredata(z)
     #print(dim(Z)); print(length(diag$sd.ratio)); print(length(diag$mean.diff))
-    for (j in 1:length(Z[1,])) Z[,j] <- Z[,j]/diag$sd.ratio[i,j] + diag$mean.diff[i,j]
+    # diagnose: (1 + sd(z))/(1 + sd(x))
+    # x is reanalysis; z is gcm:
+    for (j in 1:length(Z[1,]))
+      Z[,j] <- Z[,j]/diag$sd.ratio[i,j] + diag$mean.diff[i,j]
     y <- zoo(Z,order.by=index(z))
     y <- attrcp(z,y)
     eval(parse(text=paste("y -> attr(x,'appendix.",i,"')",sep="")))

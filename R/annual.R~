@@ -106,6 +106,37 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
     y <- aggregate(X,year,FUN=match.fun(FUN),...) # REB.
   y[!is.finite(y)] <- NA ## AM
   y <- attrcp(x,y,ignore="names")
+
+  args <- list(...)
+  #print(names(args))
+  ix0 <- grep('threshold',names(args))
+  if (length(ix0)>0) threshold <- args[[ix0]] else threshold <- 1
+  if (FUN=="counts")  {
+    #print("Count")
+    attr(y,'unit') <- paste("counts | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="freq") {
+    #print("Frequency")
+    attr(y,'variable') <- 'f'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetfreq") {
+    #print("Wet-day frequency")
+    attr(y,'variable') <- 'f[w]'
+    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+  } else if (FUN=="wetmean") {
+    #print("Wet-day mean")
+    attr(y,'variable') <- 'mu'
+    attr(y,'unit') <- 'mm/day'
+  } else if (FUN=="HDD") {
+    attr(y,'variable') <- 'HDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="CDD") {
+    attr(y,'variable') <- 'CDD'
+    attr(y,'unit') <- 'degree-days'
+  } else if (FUN=="GDD") {
+    attr(y,'variable') <- 'GDD'
+    attr(y,'unit') <- 'degree-days'
+  } else attr(y,'unit') <- attr(x,'unit')
+
   attr(y,'history') <- history.stamp(x)
   class(y) <- class(x)
   class(y)[length(class(y))-1] <- "annual"

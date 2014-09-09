@@ -9,13 +9,15 @@ annual <- function(x, ...) UseMethod("annual")
 annual.zoo <- function(x,FUN='mean',na.rm=TRUE,nmin=NULL, ...) {
   #print("annual.zoo")
   attr(x,'names') <- NULL
-  yr <- year(x)
+#  yr <- year(x)  REB: 08.09.2014
   class(x) <- 'zoo'
 #  y <- aggregate(x,yr,FUN=match.fun(FUN),...,na.rm=na.rm)
   if ( (sum(is.element(names(formals(FUN)),'na.rm')==1)) |
        (sum(is.element(FUN,c('mean','min','max','sum','quantile')))>0) )
-    y <- aggregate(x,yr,FUN=FUN,...,na.rm=na.rm) else
-    y <- aggregate(x,yr,FUN=FUN,...)
+#    y <- aggregate(x,yr,FUN=FUN,...,na.rm=na.rm) else
+#    y <- aggregate(x,yr,FUN=FUN,...)
+    y <- aggregate(x,year,FUN=FUN,...,na.rm=na.rm) else
+    y <- aggregate(x,year,FUN=FUN,...)
   invisible(y)
 }
 
@@ -56,6 +58,7 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
   if (inherits(FUN,'function')) FUN <- deparse(substitute(FUN)) # REB110314
   attr(x,'names') <- NULL
   yr <- year(x)
+  nmo <- length(levels(factor(month(x))))
   d <- dim(x)
   #print(table(yr))
   YR <- as.numeric(rownames(table(yr)))
@@ -66,7 +69,7 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
   #print(class(x))
   # Need to accomodate for the possibility of more than one station series.
   if (inherits(x,'day')) {
-    if (is.null(nmin)) nmin <- 365
+    if (is.null(nmin)) nmin <- 30*nmo
     fewd <- coredata(nval) < nmin
     nyr[fewd] <- coredata(nval)[fewd]
     #print(fewd)
@@ -113,34 +116,37 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
   if (length(ix0)>0) threshold <- args[[ix0]] else threshold <- 1
   if (FUN=="counts")  {
     #print("Count")
-    attr(y,'unit') <- paste("counts | X >",threshold," * ",attr(x,'unit'))
+    attr(y,'unit') <- rep(paste("counts | X >",threshold," * ",attr(x,'unit')),d[2])
   } else if (FUN=="freq") {
     #print("Frequency")
-    attr(y,'variable') <- 'f'
-    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+    attr(y,'variable') <- rep('f',d[2])
+    attr(y,'unit') <- 'fraction'
+#    attr(y,'unit') <- rep(paste("frequency | X >",threshold," * ",attr(x,'unit')),d[2])
   } else if (FUN=="wetfreq") {
     #print("Wet-day frequency")
-    attr(y,'variable') <- 'f[w]'
-    attr(y,'unit') <- paste("frequency | X >",threshold," * ",attr(x,'unit'))
+    attr(y,'variable') <- rep('f[w]',d[2])
+    attr(y,'unit') <- 'fraction'
+#    attr(y,'unit') <- rep(paste("frequency | X >",threshold," * ",attr(x,'unit')),d[2])
   } else if (FUN=="wetmean") {
     #print("Wet-day mean")
-    attr(y,'variable') <- 'mu'
-    attr(y,'unit') <- 'mm/day'
+    attr(y,'variable') <- rep('mu',d[2])
+    attr(y,'unit') <- rep('mm/day',d[2])
   } else if (FUN=="HDD") {
-    attr(y,'variable') <- 'HDD'
-    attr(y,'unit') <- 'degree-days'
+    attr(y,'variable') <- rep('HDD',d[2])
+    attr(y,'unit') <- rep('degree-days',d[2])
   } else if (FUN=="CDD") {
-    attr(y,'variable') <- 'CDD'
-    attr(y,'unit') <- 'degree-days'
+    attr(y,'variable') <- rep('CDD',d[2])
+    attr(y,'unit') <- rep('degree-days',d[2])
   } else if (FUN=="GDD") {
-    attr(y,'variable') <- 'GDD'
-    attr(y,'unit') <- 'degree-days'
+    attr(y,'variable') <- rep('GDD',d[2])
+    attr(y,'unit') <- rep('degree-days',d[2])
   } else attr(y,'unit') <- attr(x,'unit')
 
   attr(y,'history') <- history.stamp(x)
   class(y) <- class(x)
   class(y)[length(class(y))-1] <- "annual"
   if (class(y)[1]=="spell") class(y) <- class(y)[-1]
+  #print(class(y)); print(class(x))
   return(y)
 }
 
@@ -322,10 +328,12 @@ seasonal.yearmon <- function(x) {
 }
 
 season.abb <- function() {
-  season.abb <- c('annual','djf','jfm','fma','mam','amj','mjj','jja','jas','aso',
-                  'son','ond','ndj','ondjfm','amjjas','ndjf','jjas')
+  season.abb <- c('annual','djf','jfm','fma','mam','amj',
+                  'mjj','jja','jas','aso',
+                  'son','ond','ndj','ondjfm','amjjas',
+                  'ndjf','jjas','mjjas')
   season<-list(1:12,c(12,1,2),1:3,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,
-                c(11,12,1),c(10:12,1:3),4:9,c(11,12,1,2),6:9)
+                c(11,12,1),c(10:12,1:3),4:9,c(11,12,1,2),6:9,5:9)
   names(season) <- season.abb
   season
 }
