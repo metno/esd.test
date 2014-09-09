@@ -34,7 +34,7 @@ wheel.station(x,new=TRUE,lwd=2,col=NULL,bg="grey90",...)
 wheel.spell(x,new=TRUE,lwd=2,col=NULL...)
 cumugram(x,it=NULL,...)
 climvar(x,FUN='sd',plot=TRUE,...)
-colscal(cols="bwr",n=100,test=FALSE)
+colscal(n=30,col="bwr",test=FALSE)
 seasevol(x,...)
 seasevol.station(x,it=NULL,nv=25,...)
 }

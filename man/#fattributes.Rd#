@@ -1,0 +1,88 @@
+\name{fattributes}
+\alias{fattributes}
+
+\title{Internal ESD Functions}
+\description{A list of useful functions that are internally used within
+  the ESD package based on the list of attributes}
+\usage{
+
+
+lon(x) <- longitude(x)
+
+lat(x) <- latitude(x)
+
+stid(x)  <- station_id(x) 
+
+wmo <- function(x) return(attr(x,"wmo"))
+
+qual <- quality <-  function(x) return(attr(x,"quality"))
+
+alt <- altitude <- function(x) return(attr(x,"altitude"))
+
+calendar <- function(x) return(attr(x,"calendar"))
+
+cntr <- country <- function(x) return(attr(x,"country"))
+
+loc <- location <- function(x) return(attr(x,"location"))
+
+varid <- variable <- function(x) return(attr(x,"variable"))
+
+unit <- function(x) return(attr(x, "unit"))
+
+src <-  function(x) return(attr(x,"source"))
+
+aspect <- function(x) return(attr(x, "aspect"))
+
+ref <- reference <-  function(x) (attr(x, "reference"))
+
+info <- function(x) return(attr(x,"info"))
+
+history.esd <- function(x) return(attr(x, "history"))
+
+pattern <- function(x) return(attr(x,"pattern"))
+
+ele <- element <- function(x) return(attr(x,"element"))
+
+
+}
+
+\arguments{
+  \item{path}{Character vector of the path to the CMIP data.}
+  \item{param}{Parameter or element type. There are several core parameters or elements as well as a number of additional parameters. The parameters or elements are #(Abdelkader : We need to update this list):
+           auto         = automatic selection.
+           prcp, pr     = Precipitation (mm)
+   	   tas, tavg    = 2m-surface temperature (in degrees Celcius)
+           tmax, tasmax = Maximum temperature (in degrees Celcius)
+           tmin, tasmin = Minimum temperature (in degrees Celcius)
+                }
+  \item{lon}{Numeric value of longitude for the reference point (in decimal degrees East) or a vector containing the range of longitude values in the form of c(lon.min,lon.max)}
+  \item{lat}{Numeric value of latitude for the reference point (in decimal degrees North) or a vector containing the range of latitude values in the form of c(lat.min,lat.max)}
+  \item{lev}{Numeric value of pressure levels or a vector containing the range of pressure level values in the form of c(lev.min,lev.max) }
+  \item{time}{Numerical year values or date values of time or a vector containing the range of values in the form of c(time.min,time.max). Date format should be in the form of "YYYY-MM-DD".}
+  \item{saveinfile}{Logical or a character value. The output filename is set automatically if not specified. Default value is "TRUE".}
+  \item{verbose}{Logical value. If TRUE, do not display comments (silent mode)}
+}
+\value{A field object}
+
+\seealso{
+}
+
+\author{A.  Mezghanil}
+\examples{
+\dontrun{
+# Eg.1 : 
+# Compute the global mean surface temperature anomalies from CMIP3 experiment
+test.cmip3.global(...)
+# Compute the global mean surface temperature anomalies from CMIP5 experiment
+test.cmip5.global(...)
+# Plot the Global t2m-temperature anomalies from both CMIP3 and CMIP5 experiments.
+plot.cmip35.global()
+
+# Eg.2 Compute the mean surface temperature anomalies from CMIP3 experiment over Arctic
+test.cmip3.arctic(...) 
+
+# Eg.3 Compute the mean surface temperature anomalies from CMIP5 experiment over Scandinavia.
+test.cmip5.scandinavia(...)
+}
+}
+\keyword{utilities}

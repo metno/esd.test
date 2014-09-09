@@ -1,16 +1,11 @@
-\name{retrieve}
-\alias{retrieve}
+\name{retrieve.ncdf4}
+\alias{retrieve.ncdf4}
 \title{Retrieve field data from a netcdf file.}
 \description{Retrieve data from a netcdf file and return a zoo field object with attributes. 
   \code{\link{retrieve}}.
 }
 \usage{
 %retrieve.default(...)
-retrieve.default(ncfile,...)
-retrieve.ncdf(ncfile = ncfile, path = path , param = "auto",
-               lon = NULL, lat = NULL, lev = NULL, time = NULL,
-               miss2na = TRUE, greenwich = TRUE , ncdf.check = TRUE,
-               verbose = FALSE , plot = TRUE)
 retrieve.ncdf4(ncfile = ncfile, path = path , param = "auto",
                lon = NULL, lat = NULL, lev = NULL, time = NULL,
                miss2na = TRUE, greenwich = TRUE , ncdf.check = TRUE,
@@ -18,19 +13,17 @@ retrieve.ncdf4(ncfile = ncfile, path = path , param = "auto",
 
 summary.ncdf4(ncfile, verbose=FALSE)
 
-check.ncdf4(ncid = ncid, param = "auto" , verbose = FALSE)
-check.ncdf(ncid = ncid, param = "auto" , verbose = FALSE)
+check.ncdf4(ncid = ncid, param = "auto" , verbose = FALSE ,use.cdfcont=FALSE)
 }
 
 \arguments{
-  \item{ncfile}{A character string of full path netcdf file name
-  (include the path if necessary) or any object of class 'ncdf' or 'ncdf4'.}
-  \item{ncid}{An object of class 'ncdf' or 'ncdf4'.}
+  \item{ncfile}{A character string of full path netcdf file name (include the path if necessary) or any object of class 'ncdf4'.}
+  \item{ncid}{An object of class 'ncdf4'.}
   \item{lon}{Numeric value of longitude for the reference point (in decimal degrees East) or a vector containing the range of longitude values in the form of c(lon.min,lon.max)}
   \item{lat}{Numeric value of latitude for the reference point (in decimal degrees North) or a vector containing the range of latitude values in the form of c(lat.min,lat.max)}
   \item{lev}{Numeric value of pressure levels or a vector containing the range of pressure level values in the form of c(lev.min,lev.max) }
   \item{time}{Numerical year values or date values of time or a vector containing the range of values in the form of c(time.min,time.max). Date format should be in the form of "YYYY-MM-DD".}
-  \item{param}{Parameter or element type. There are several core parameters or elements as well as a number of additional parameters. The parameters or elements are:
+  \item{param}{Parameter or element type. There are several core parameters or elements as well as a number of additional parameters. The parameters or elements are (Abdelkader : We need to update this list):
            auto         = automatic selection.
            prcp, pr     = Precipitation (mm)
    	   tas, tavg    = 2m-surface temperature (in degrees Celcius)

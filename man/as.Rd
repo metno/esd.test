@@ -3,6 +3,7 @@
 \alias{as.station.data.frame}
 \alias{as.station.list}
 \alias{as.station.ds}
+\alias{as.station.pca}
 \alias{as.station.field}
 \alias{as.station.zoo}
 \alias{as.station.spell}
@@ -67,6 +68,9 @@
 \alias{as.pattern.trend}
 \alias{as.pattern.field}
 \alias{as.pattern.corfield}
+\alias{as.pca}
+\alias{as.pca.ds}
+\alias{as.pca.station}
 \alias{as.comb}
 \alias{as.comb.eof}
 \title{Conversion to esd objects.}
@@ -143,6 +147,9 @@ as.pattern.mvr(x)
 as.pattern.field(x)
 as.pattern.trend(x)
 as.pattern.corfield(x)
+as.pca(x)
+as.pca.ds(x)
+as.pca.station(x)
 as.residual(x)
 as.residual.ds(x)
 as.residual.station(x)
@@ -158,9 +165,12 @@ as.station.zoo(x,location=NA,param=NA,unit=NA,lon=NA,lat=NA,alt=NA,
                       reference=NA,info=NA, method= NA,type=NA,aspect=NA)
 as.station.list(x)
 as.station.ds(x)
+as.station.pca(x)
 as.station.field(x)
 as.station.spell(x)
 as.station.eof(x,pattern=1:10)
+as.pca.ds(x)
+as.pca.station(x)
 }
 \arguments{
   \item{x}{Data object}
