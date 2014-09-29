@@ -14,11 +14,11 @@
 ## depends on 
 
 ## scripts needed to run meta2esd
-source("esd/R/ghcnd.R") # already included in the esd package
-source("esd/R/ghcnm.R") # already included in the esd package
-source("R_scripts/nordklim.R") # not yet included in the clim.pact and esd package
-source("R_scripts/metno.R") # not yet included in the esd package 
-source("R_scripts/ecad.R") # not yet included in the esd package
+## source("esd/R/ghcnd.R") # already included in the esd package
+## source("esd/R/ghcnm.R") # already included in the esd package
+## source("R_scripts/nordklim.R") # not yet included in the clim.pact and esd package
+## source("R_scripts/metno.R") # not yet included in the esd package 
+## source("R_scripts/ecad.R") # not yet included in the esd package
 ##source("R_scripts/narp.R") # already included in the esd packag
 ##source("R_scripts/nacd.R") # already included in the clim.pact and moved to the esd package
 
