@@ -540,6 +540,15 @@ subset.dsensemble <- function(x,it=NULL,is=NULL) {
     #nattr <- softattr(x)
     #for (i in 1:length(nattr))
     #  attr(y,nattr[i]) <- attr(x,nattr[i])
+  } else {
+    # Bug-fix AM: 2014-09-22
+      y <- x[,is]
+      y <- attrcp(x,y)
+      attr(y, "model_id") <- attr(x, "model_id")[is]
+      attr(y, "scorestats") <- attr(x, "scorestats")[is]
+      #browser()
+      attr(y,"history") <- history.stamp(x)
+      if (length(is)==1) class(y) <- c("ds","zoo") else class(y) <- class(x)
   }
   #print("exit")
   return(y)  

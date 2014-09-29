@@ -108,8 +108,8 @@ exceedance <- function(x,threshold=1,fun='mean',...) UseMethod("exceedance")
 
 exceedance.default <- function(x,threshold=1,fun='mean',na.rm=TRUE,...) {
   #print("HERE");  str(x)
-  X <- x[x > threshold]
   yrs <- year(x); d <- dim(x)
+  X <- x; X[X <= threshold] <- NA
   # ns = number of stations
   if (is.null(d)) ns <- 1 else ns <- d[2]
   if ((fun!="count") & (fun!="freq")) {

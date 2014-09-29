@@ -144,6 +144,7 @@ combine.stations <- function(...,all=TRUE) {
   #print(length(args))
   
   n <- length(args)
+  cls <- class(args[[1]])
   
   loc <- NULL; cn <- loc; ID <- NULL; unit <- loc
   lon <- ID; lat <- ID; alt <- ID; param <- loc; lname <- loc
@@ -189,7 +190,7 @@ combine.stations <- function(...,all=TRUE) {
   #attr(X,'date-stamp') <- date()
   attr(X,'reference') <- ref
   attr(X,'info') <- info
-  class(X) <- c('station','zoo')
+  class(X) <- cls
   invisible(X)
 }
 

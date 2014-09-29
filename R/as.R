@@ -703,10 +703,11 @@ as.anomaly.default <- function(x,ref=NULL,monthly=NULL,na.rm=TRUE) {
   #print(ndd)
   if ( (ndd==1) & is.null(monthly) ) monthly <- TRUE else
                                      monthly <- FALSE
+  y <- coredata(x)
+  
   if (monthly) {
     # If monthly, subtract the
     #print(table(month))
-    y <- coredata(x)
     if (is.null(dim(x))) {
       #print("1D")
       clim <- rep(0,12)
@@ -995,4 +996,45 @@ as.appended.field.comb <- function(x,iapp=1) {
   invisible(X)
 }
 
+as.stand <- function(x,...) UseMethod("as.stand")
 
+as.stand.station <- function(x) {
+  if (is.precip(x)) {
+    mu <- apply(x,2,mean,na.rm=na.rm)
+    X <- 100*x/mu
+    attr(X,'clim') <- mu
+    attr(X,'aspect') <- 'proportional'
+    attr(X,'unit') <- '%'
+    attr(X,'oldunit') <- attr(x,'unit')
+  } else if (is.T(x)) {
+    mu <- apply(x,2,mean,na.rm=na.rm)
+    sigma <- apply(x,2,sd,na.rm=na.rm)
+    X <- (x - mu)/sigma
+    attr(X,'mean') <- mu
+    attr(X,'sigma') <- sigma
+    attr(X,'aspect') <- 'standardised'    
+  }
+  attr(X,'history') <- history.stamp(x)
+  return(X)
+}
+
+
+
+as.original <- function(x) UseMethod("as.original")
+
+as.original.station <- function(x) {
+  if (attr(x,'aspect')=='proportional') {
+    X <- attr(x,'clim')*x/100
+    attr(X,'clim') <- NULL
+    attr(X,'unit') <- attr(x,'oldunit')
+    attr(X,'oldunit') <- NULL
+    attr(X,'aspect') <- 'original'
+  } else if (attr(x,'aspect')=='standardised') {
+    X <- x * attr(x,'sigma') + attr(x,'mean')
+    attr(X,'mean') <- NULL
+    attr(X,'sigma') <- NULL
+    attr(X,'aspect') <- 'original'     
+  } else X <- x
+  attr(X,'history') <- history.stamp(x)
+  return(X)
+}

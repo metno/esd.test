@@ -120,24 +120,36 @@ plot.eof.field <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=1,
 
 
 plot.eof.comb <- function(x,new=TRUE,xlim=NULL,ylim=NULL,
-                          pattern=1,col=c("red"),what=c("pc","eof","var"),...) {
+                          pattern=1,col=c("red"),
+                          what=c("pc","eof","var"),...) {
   #print("plot.eof.comb")
   n <- pattern
   D <- attr(x,'eigenvalues')
   tot.var <- attr(x,'tot.var')
   var.eof <- 100* D^2/tot.var
-  if (length(grep('map',what))>0) map(x,pattern=pattern)
+
+  if (length(what)==3) mfrow <- c(2,2) else
+  if (length(what)==2) mfrow <- c(2,1)
+  
+  if (new) dev.new()
+  par(cex.axis=0.75,cex.lab=0.7,cex.main=0.8)
+  par(mfrow=mfrow,mar=c(0.5,0.5,2.5,0.5),bty="n",xaxt="n",yaxt="n")
+
+  if (length(grep('eof',what))>0) map(x,pattern=pattern,new=FALSE)
 
   n.app <- attr(x,'n.apps')
   col <- rep(col,n.app)
   src <- rep("",n.app+1)
   src[1] <- attr(x,'source')
-  if (new) dev.new()
-  par(bty="n",fig=c(0,1,0.1,1),mar=c(3,4,2,2),cex.main=0.8)
-  ylab <- paste("PC",n)
+  ylab <- paste("PC",1:n)
   main <- paste("EOF: ",n,"accounts for",
                 round(var.eof[n],1),"% of variance")
   
+  if (length(grep('var',what))>0)  {
+    par(xaxt="s",yaxt="s")
+    plot.eof.var(x,new=FALSE,cex.main=0.7)
+  }
+
   if (is.null(ylim)) {
     ylim <- range(coredata(x[,n]))
     for (i in 1:n.app) {
@@ -155,6 +167,8 @@ plot.eof.comb <- function(x,new=TRUE,xlim=NULL,ylim=NULL,
   }
 
   if (length(grep('pc',what))>0) {
+    par(bty="n",xaxt="s",yaxt="s",xpd=FALSE,
+      fig=c(0.1,0.9,0.1,0.5),new=TRUE,cex.axis=0.6,cex.lab=0.6)
     plot.zoo(x[,n],lwd=2,ylab=ylab,main=main,sub=attr(x,'longname'),
                                           xlim=xlim,ylim=ylim)
     par0 <- par()
@@ -172,8 +186,6 @@ plot.eof.comb <- function(x,new=TRUE,xlim=NULL,ylim=NULL,
     plot.zoo(x[,n],type="n",xlab="",ylab="")
   }
   
-  if (length(grep('var',what))>0) plot.eof.var(x)
-  invisible(x)
 }
 
 plot.eof.var <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=20,...) {
@@ -211,7 +223,7 @@ plot.eof.var <- function(x,new=TRUE,xlim=NULL,ylim=NULL,pattern=20,...) {
 }
 
 
-plot.ds <- function(x,plot.type="single",what=c("map","ts",'xval'),new=TRUE,
+plot.ds <- function(x,plot.type="multiple",what=c("map","ts",'xval'),new=TRUE,
                     lwd=3,type='l',pch=0,main=NULL,col=NULL,
                     xlim=NULL,ylim=NULL,xlab="",ylab=NULL,...) {
   #print('plot.ds')
@@ -239,7 +251,8 @@ plot.ds <- function(x,plot.type="single",what=c("map","ts",'xval'),new=TRUE,
   cols <- rep("blue",100)
   model <- attr(x,'model')
 
-  if (new & plot.type!="single") dev.new()
+  if (new) dev.new()
+  if (plot.type=="single") new <- TRUE
   par(cex.axis=0.75,cex.lab=0.7,cex.main=0.8)
 
   if (sum(is.element(what,'map'))>0) {
@@ -249,22 +262,23 @@ plot.ds <- function(x,plot.type="single",what=c("map","ts",'xval'),new=TRUE,
   }
 
   if (sum(is.element(what,'xval'))>0) {
+    if (is.null(attr(x,'evaluation'))) attr(x,'evaluation') <- crossval(x)
     par(bty="n",fig=c(0.55,0.95,0.55,0.95),mar=c(4,3,1,1),new=TRUE,
         xaxt='s',yaxt='s',cex.sub=0.7)
-    plot(attr(z.fw,'evaluation')[,1],attr(z.fw,'evaluation')[,2],
+    plot(attr(x,'evaluation')[,1],attr(x,'evaluation')[,2],
          main='Cross-validation',xlab='original data',
          ylab='prediction',pch=19,col="grey")
-    lines(range(c(attr(z.fw,'evaluation')),na.rm=TRUE),
-          range(c(attr(z.fw,'evaluation')),na.rm=TRUE),lty=2)
-    cal <- data.frame(y=coredata(attr(z.fw,'evaluation')[,1]),
-                      x=coredata(attr(z.fw,'evaluation')[,2]))
+    lines(range(c(attr(x,'evaluation')),na.rm=TRUE),
+          range(c(attr(x,'evaluation')),na.rm=TRUE),lty=2)
+    cal <- data.frame(y=coredata(attr(x,'evaluation')[,1]),
+                      x=coredata(attr(x,'evaluation')[,2]))
     xvalfit <- lm(y ~ x, data = cal)
     abline(xvalfit,col=rgb(1,0,0,0.3),lwd=2)
     par(bty="n",fig=c(0.6,0.95,0.48,0.52),mar=c(0,0,0,0),new=TRUE,
         xaxt='n',yaxt='n',cex.sub=0.7)
     plot(c(0,1),c(0,1),type='n',xlab='',ylab='')
     text(0,0.5,paste('x-correlation=',
-           round(cor(attr(z.fw,'evaluation')[,1],attr(z.fw,'evaluation')[,2]),2)),
+           round(cor(attr(x,'evaluation')[,1],attr(x,'evaluation')[,2]),2)),
          pos=4,cex=0.8,col='grey')
   }
   
@@ -624,7 +638,8 @@ plot.cca <- function(x,icca=1) {
   par(bty="n",xaxt="s",yaxt="s",xpd=FALSE,
       fig=c(0,1,0.05,0.5),new=TRUE,cex.axis=0.6,cex.lab=0.6)
   plot(w.m,col="blue",lwd=2,
-       main=paste("CCA pattern ",icca,"; r= ",round(r,2),sep=""),
+       main=paste("CCA pattern ",icca," for ",varid(x),
+         "; r= ",round(r,2),sep=""),
        xlab="",ylab="")
   lines(v.m,col="red",lwd=2)
 
@@ -936,3 +951,69 @@ plot.spell <- function(x,xlim=NULL,ylim=NULL) {
   
 }
 
+plot.ssa <- function(ssa,main="SSA analysis",sub="")  {
+    if ( (class(ssa)[1]!="SSA") ) stop("Need an 'SSA' object")
+    nt <- ssa$nt
+    newFig()
+    plot(ssa$d,main=main,sub=sub,ylab="Singular value",pch=20,col="grey50")
+    points(ssa$d)
+    grid()
+
+    newFig()
+    par(mfcol=c(3,1))
+    plot(ssa$v[,1],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA vector: mode 1",lwd=3,col="grey70")
+    grid()
+    plot(ssa$v[,2],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA vector: mode 2",lwd=3,col="grey70")
+    grid()
+    plot(ssa$v[,3],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA vector: mode 3",lwd=3,col="grey70")
+    grid()
+
+
+    newFig()
+    par(mfcol=c(3,1))
+    if (class(ssa)[3] == "monthly.station.record") {
+      yy <- sort(rep(ssa$x$yy,12)); yy <- yy[1:ssa$Nm]
+      mm <- rep(1:12,nt); mm <- mm[1:ssa$Nm]
+      #print(rbind(yy,mm))
+      #print(dim(ssa$v)); print(dim(ssa$u)); print(length(yy));
+      #print(length(mm));  print(ssa$Nm); print(nt); print(length(ssa$x$yy))
+      plot(yy + (mm-0.5)/12, ssa$u[,1],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(yy + (mm-0.5)/12, ssa$u[,2],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(yy + (mm-0.5)/12, ssa$u[,3],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+    } else if (class(ssa)[3] == "daily.station.record") {
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,1],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,2],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,3],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+    } else {
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,1],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,2],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+      plot(ssa$x$yy[1:ssa$Nm] + ssa$x$mm[1:ssa$Nm]/12 + ssa$x$dd[1:ssa$Nm]/365,
+           ssa$u[,3],type="l",main=main,sub=sub,
+           xlab="Time",ylab="SSA loadings",lwd=3,col="grey70")
+      grid()
+    }
+  }

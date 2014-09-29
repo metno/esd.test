@@ -170,6 +170,7 @@ EOF.field <- function(X,it=NULL,n=20,lon=NULL,lat=NULL,
   
   #a <- y[,1]; dim(a) <- c(d[1],d[2]); image(a)
   eof <- zoo(SVD$v[,1:n],order.by = dates)
+  invert <- apply(SVD$u[,1:n],2,mean) < 0
 
   # Some data points may have been excluded due to missing values.
   # Need to insert the results for valid data onto the original grid.
@@ -192,6 +193,12 @@ EOF.field <- function(X,it=NULL,n=20,lon=NULL,lat=NULL,
     eof <- merge(zoo(A,order.by=index(eof)),eof)
   }
   #print(dim(pattern)); print(d); print(n)
+
+  # Make all the EOF vectors havine the same sense rather than
+  # being random:
+  pattern[,invert] <- -pattern[,invert]
+  eof[,invert] <- -eof[,invert]
+  
   dim(pattern) <- c(d[1],d[2],n)
   dim(Ave) <- c(d[1],d[2])
   eof <- attrcp(X,eof)
@@ -468,6 +475,10 @@ PCA.station <- function(X,neofs=20,na.action='fill',verbose=FALSE) {
   V[ok.time,] <- pca$v[,1:neofs]
   y <- zoo(V,order.by=index(X))
   names(y) <- paste("X.",1:neofs,sep="")
+
+  invert <- apply(U,2,mean) < 0
+  U[,invert] <- -U[,invert]
+  y[,invert] <- -y[,invert]
   
   y <- attrcp(X,y)
   #nattr <- softattr(X)

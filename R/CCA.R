@@ -108,6 +108,7 @@ CCA.eof <- function(Y,X,i.eofs=1:8) {
     print(paste("CCA: leading canonical correlation=", round(R[1],2),
                 " actual correlation=",round(cor(w.m[,1],v.m[,1]),2)))
   }
+  attr(cca,'variable') <- paste(varid(Y)[1],varid(X)[1],sep='-')
   attr(cca,'history') <- history.stamp(X,Y)
   invisible(cca)
 }

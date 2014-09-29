@@ -604,20 +604,11 @@ DS.spell <- function(y,X,threshold=1,biascorrect=FALSE,
 DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
                    method="lm",swsm=NULL,eofs=1:10,
                    rmtrend=TRUE,verbose=FALSE,...) {
-  print('DS.pca')
+  print('DS.pca. v2')
   cls <- class(y)
   Z <- y; pca <- X
   nattr <- softattr(y)
 
-  if (rmtrend) {
-    #print("rmtrend y")
-    offset <- mean(y,na.rm=TRUE)
-    y <- trend(y,result="residual")
-    offset <- offset - mean(y,na.rm=TRUE)
-    #print("rmtrend X")
-    X <- trend(X,result="residual")
-  } else offset <- 0
-  
   # synchronise the two zoo objects through 'merge' (zoo)
   dy <- dim(y)
   dx <- dim(X)
@@ -654,8 +645,8 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
     #str(pca)
     ds <- zoo(pca$v,order.by=index(X))
     model$fitted.values <- zoo(model$fitted.values,order.by=index(X)) +
-    attr(Z,'mean') + offset  # REB 04.12.13: included attr(Z,'mean') in
-                             # addition to offset
+#    attr(Z,'mean') + offset  # REB 04.12.13: included attr(Z,'mean') in
+#                             # addition to offset
     model$calibration.data <- X
     class(model$fitted.values) <- class(Z)
     attr(ds,'model') <- model
@@ -674,7 +665,7 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
     if (verbose) print(eofs)
     # For each PC
     
-    for (i in 1:dx[2]) {
+    for (i in 1:dy[2]) {
       ys <- as.station(zoo(y[,i]),loc=loc(y)[i],param=varid(y)[i],
                        unit=unit(y)[i],lon=lon(y)[i],lat=lat(y)[i],
                        alt=alt(y)[i],cntr=cntr(y)[i],stid=stid(y)[i])
@@ -683,17 +674,18 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
               method=method,swsm=swsm,eofs=eofs,
               rmtrend=rmtrend,verbose=verbose,...)
 
-      plot(ys); lines(zoo(z,order.by=year(z)))
       attr(z,'mean') <- 0
       zp <- predict(z,newdata=X)
       y.out[,i] <- coredata(zp)
-      lines(zoo(y.out[,i],order.by=year(X)),col='blue',lty=2); browser()
-      # print(summary(y.out[,i]))
+      #plot(ys); lines(zoo(z,order.by=year(z)))
+      #lines(zoo(y.out[,i],order.by=year(X)),col='blue',lty=2); browser()
+      #print(c(i,dy[2])); print(summary(y.out[,i]))
       # If common EOFs, then also capture the predictions:
       if (!is.null(attr(z,'appendix.1'))) {
         y.app[,i] <- attr(zp,'appendix.1.')
       }
     }
+    if (verbose) print('Transform back into a PCA-object')
     ds <- zoo(y.out,order.by=index(X))
     ds <- attrcp(y,ds)
     attr(ds,'eigenvalues') <- attr(Z,'eigenvalues')
@@ -702,7 +694,7 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
  }
   #print(class(model)); str(model)
   attr(ds,'variable') <- varid(Z)
-  attr(ds,'mean') <- attr(Z,'mean') + offset
+  attr(ds,'mean') <- attr(Z,'mean') # + offset
   attr(ds,'max.autocor') <- attr(Z,'max.autocor')
   attr(ds,'tot.var') <- attr(Z,'tot.var')
    #attr(ds,'dimensions') <- c(du[1],du[2])
@@ -713,9 +705,10 @@ DS.pca <- function(y,X,biascorrect=FALSE,mon=NULL,
   attr(ds,'history') <- history.stamp(y)
   attr(ds,'call') <- match.call()
   class(ds) <- c("ds",cls)
-  plot(zoo(y[,1]))
-  lines(zoo(y.out[,1],order.by=year(X)),col='blue',lty=2)
-  lines(ds[,1],col='red')
+  
+  #plot(zoo(y[,1],order.by=year(y)),lwd=3)
+  #lines(zoo(y.out[,1],order.by=year(X)),col='blue',lwd=2)
+  #lines(zoo(ds[,1],order.by=year(ds)),col='red',lty=2)
   
   invisible(ds)
 }

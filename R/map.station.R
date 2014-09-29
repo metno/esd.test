@@ -44,9 +44,9 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
                          height=NULL,width=NULL,cex.axis=1,pch=21,
                          FUN=NULL,from=NULL,to=NULL,showaxis=FALSE,xlim = NULL, ylim = NULL,border=FALSE,
                          full.names=FALSE,full.names.subset=FALSE,new=TRUE,text=FALSE,
-                         fancy=FALSE,...) 
+                         fancy=FALSE,gridlines=TRUE,...) 
 { 
-    library(fields)
+    ## library(fields)
     ## Extract colbar parameters
     if (!is.null(colbar))
         cex.lab <- colbar$label
@@ -111,18 +111,12 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
     ## Set negative altitude to NA
     ss$altitude[ss$altitude < 0] <- NA
     
-    ##if (!is.null(highlight)) {
-    ##    station.meta$lon[!highlight] <- NA
-    ##    station.meta$lat[!highlight] <- NA
-    ##    station.meta$alt[!highlight] <- NA
-    ##}
-    
     tte <- "rwb"
     
     cols <- rgb(seq(0, 0.5, length = 100)^2, seq(0.5, 1, length = 100), 
                 seq(0, 0.5, length = 100)^2)
 
-    if (new) dev.new(height=height,width=width)
+    ## if (new) dev.new(height=height,width=width)
                                         #par(bty = "n", xaxt = "n", yaxt = "n", xpd = FALSE)
 
     ## Select a subdomain in the x-axis
@@ -195,7 +189,6 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
     grid()
     
     ## insert color bar
-    ## browser()                                    #browser()
     if (TRUE) {  
         if (!is.null(FUN)) {
           if (is.element(FUN,c('lon','lat','alt')))
@@ -213,28 +206,28 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
           
           if (is.null(colbar$col) & is.null(colbar$breaks)) {
               colbar$breaks <- pretty(y,n=colbar$n.breaks)
-              COL <- rev(rainbow(n=length(colbar$breaks)))
+              COL <- colscal(n=colbar$n.breaks,col="bwr",test=FALSE) #rev(rainbow(n=length(colbar$breaks)))
               colbar$n.breaks <- length(COL)
           }
           if (!is.null(colbar$breaks)) {
               ## stopifnot(length(colbar$n.breaks)==length(colbar$breaks))
-              COL <- rev(rainbow(n=length(colbar$breaks)))
+               COL <- colscal(n=length(colbar$breaks),col="bwr",test=FALSE) #COL <- rev(rainbow(n=length(colbar$breaks)))
               colbar$n.breaks <- length(colbar$breaks)
           }
           if (!is.null(colbar$breaks) & is.null(colbar$col)) {
               colbar$n.breaks <- length(colbar$breaks)
-              COL <- rev(rainbow(n=length(colbar$breaks)))
+               COL <- colscal(n=length(colbar$breaks),col="bwr",test=FALSE) # COL <- rev(rainbow(n=length(colbar$breaks)))
           } else if (!is.null(colbar$col)) {
               COL <- colbar$col
               colbar$n.breaks <- length(COL)
               colbar$breaks <- pretty(y,colbar$n.breaks) ## seq(y.rng[1],y.rng[2],by=diff(y.rng)/colbar$n.breaks)                        
           }
-          ## browser()
+          
           if (fancy==TRUE)
               col.bar(breaks=colbar$breaks,col=COL,pch=pch,type=colbar$type,v=colbar$v,h=colbar$h,cex=colbar$cex,cex.lab=colbar$cex.lab,border=border,...)
           else 
-              image.plot(horizontal=TRUE,legend.only=T,zlim=range(y),col=COL,legend.width=1,axis.args=list(cex.axis=0.8),border=FALSE)
-              
+              image.plot(horizontal=TRUE,legend.only=T,zlim=range(y),col=COL,legend.width=1,axis.args=list(cex.axis=0.8),border=FALSE,add=TRUE,graphics.reset=TRUE)
+
           if (is.null(dim(x))) ns <- 1 else ns <- dim(x)[2]
           col <- rep(NA,ns)
           if (ns==1)
@@ -248,15 +241,15 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
           col=col;bg=bg     
       }
     }
-    ## browser()
+    ## 
     ##scale <- apply(y,2,function(x) sum(!is.na(x))/length(x))
     if (!inherits(x,"stationmeta") & !is.null(attr(x,'na')))
         scale <- attr(x,'na')
     else
         scale <- 1
     if (is.null(highlight) | showall) 
-        points(ss$longitude, ss$latitude, pch = pch, col = col, bg=bg ,cex = cex*scale, xlab = "", ylab = "", xlim = xlim, ylim = ylim,...)
-    ## browser()
+        points(ss$longitude, ss$latitude, pch = pch, col = col, bg=bg ,cex = cex*scale, xlab = "", ylab = "", xlim = xlim, ylim = ylim,new=new,...)
+    ## 
     if (!is.null(highlight)) {
         points(highlight$longitude, highlight$latitude, pch = 21 , col = col.subset,bg=bg.subset, cex = cex.subset,...)
     }
@@ -283,54 +276,6 @@ map.station <- function (x = NULL,col = "darkgreen",bg="green",cex=1, zexpr = "a
     if (showaxis) axis(2,seq(ylim[1],ylim[2],by=10),cex.axis=cex.axis)
     if (showaxis) axis(4,seq(ylim[1],ylim[2],by=10),cex.axis=cex.axis)
     if (showaxis) axis(3,seq(xlim[1],xlim[2],by=10),cex.axis=cex.axis)
-    
-    ## points(attr(t2m.NORDKLIM, "longitude"), attr(t2m.NORDKLIM,"latitude"), cex = 0.5)
-    ## points(attr(precip.NORDKLIM, "longitude"), attr(precip.NORDKLIM,"latitude"), cex = 0.5)
-    ## Add geo-border lines
-    
-    
-                                        #z <- round(eval(parse(text = zexpr)) * 100)
-                                        #z[!is.finite(z)] <- 1
-                                        #z[z < 1] <- 1
-                                        #z[z > 100] <- 100
-    
-                                        #points(station.meta$lon, station.meta$lat, pch = 19, col = cols[z], cex = 0.5)
-                                        #if (!is.null(stid)) {
-                                        #    if (is.numeric(stid)) {
-                                        #        iv <- is.element(station.meta$stid, stid)
-                                        #    }
-                                        #    else if (is.character(stid)) {
-                                        #        nc <- nchar(stid)
-                                        #        iv <- is.element(tolower(substr(station.meta$location, 
-                                        #            1, nc)), tolower(stid))
-    #    }
-                                        #    points(station.meta$lon[iv], station.meta$lat[iv], pch = 19, 
-                                        #        col = "white")
-                                        #    points(station.meta$lon[iv], station.meta$lat[iv], lwd = 2)
-                                        #}
-                                        #par(fig = c(0.85, 0.99, 0.2, 0.4), new = TRUE, mar = rep(0,4), xaxt = "n", yaxt = "n", bty = "n")
-                                        #plot(c(0, 1), c(0, 1), type = "n", xlab = "", ylab = "")
-                                        #rect(0, 0, 1, 1, col = "white", border = "white")
-                                        #zlim <- seq(0, max(z, na.rm = TRUE), by = 1)
-                                        #for (i in zlim) {
-                                        #    lines(c(0.7, 1), rep(i/max(zlim), 2), col = cols[zlim[i]],lwd = 2)
-                                        #    if ((i%%10) == 0) 
-                                        #        text(0.7, i/max(zlim), paste(round(sqrt(zlim[i])/100 * 
-                                        #            max(station.meta$alt, na.rm = TRUE)), "m"), pos = 2,cex = 0.5, col = "grey40")
-    #}
-                                        #par(fig = c(0.03, 0.3, 0.1, 0.3), new = TRUE, mar = rep(0,4), xaxt = "s", yaxt = "s", bty = "n")
-                                        #alt.rng <- range(highlight$altitude)
-                                        #h <- hist(highlight$altitude, plot = FALSE, breaks = 50)
-                                        #plot(range(h$mids), c(0, max(h$count)), type = "n", xlab = "", ylab = "")
-                                        #lines(h$mids, h$count, lwd = 3, type = "s")
-                                        #invisible(highlight)
-                                        #par(bty = "n", xaxt = "n", yaxt = "n", xpd = FALSE, fig = c(0, 1, 0, 1), new = TRUE)
-                                        #results <- station.meta$location[iv]
-                                        #attr(result, "longitude") <- station.meta$lon[iv]
-                                        #attr(result, "latitude") <- station.meta$lat[iv]
-                                        #attr(result, "altitude") <- station.meta$alt[iv]
-                                        #attr(result, "station_id") <- station.meta$stid[iv]
-    
 }
 
 
@@ -341,7 +286,7 @@ col.bar <- function(breaks,horiz=TRUE,pch=21,v=1,h=1,col=col,cex=2,cex.lab=0.81,
     ybottom <- par()$usr[4] - 1 - h
     ytop <-  par()$usr[4] - 1 
     
-    ## browser()
+    ## 
     by <- (xright - xleft - v * (length(col)))/(length(breaks))
     steps <-   seq(0, (xright -xleft - v * (length(col))) ,by=by ) # 
     nsteps <- length(steps) 
@@ -380,10 +325,12 @@ trend <- function(x,ns.omit=TRUE,alpha=0.1) {
 }
 
 colbar2 <- function(x,col) {
+    par0 <- par()
     par(mar=c(1,0,0,0),fig=c(0.5,1,0.665,0.695),new=TRUE,cex.axis=0.6)
     nl <- pretty(x)
     n <- length(nl)
     image(cbind(1:n,1:n),col=col) 
     par(xaxt="s")
     axis(1,at=seq(0,1,length=length(nl)),label=nl)
+    par(fig=par0$fig)
 }

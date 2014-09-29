@@ -272,7 +272,7 @@ map.trend <- function(x,it=NULL,is=NULL,new=TRUE,xlim=NULL,ylim=NULL,n=15,
 lonlatprojection <- function(x,it=NULL,is=NULL,xlim=NULL,ylim=NULL,
                              n=15,col=NULL,breaks=NULL,geography=TRUE,
                              what=c("fill","contour"),gridlines=TRUE,
-                             new=TRUE,...) {
+                             new=TRUE,colorbar=NULL,...) {
   #print('lonlatprojection')
   #print(dim(x)); print(c(length(attr(x,'longitude')),length(attr(x,'latitude'))))
   data("geoborders",envir=environment())
@@ -292,6 +292,9 @@ lonlatprojection <- function(x,it=NULL,is=NULL,xlim=NULL,ylim=NULL,
 #                               variable," *(",unit,")))",sep=""))) else
   main=eval(parse(text=paste('expression(',variable," *(",unit,"))",sep="")))
   sub <- attr(x,'source')
+
+  if (is.null(colorbar)) colorbar <- (sum(is.element(what,'fill')>0))
+                                      
   #print('time')
   if (!is.null(attr(x,'timescale'))) {
     #print(attr(x,'timescale'))
@@ -338,7 +341,8 @@ lonlatprojection <- function(x,it=NULL,is=NULL,xlim=NULL,ylim=NULL,
      col <- colscal(col=palette,n=length(breaks)-1)
   }
   if (length(breaks) != length(col)+1)
-    breaks <- seq(min(c(x)),max(c(x)),length=length(col)+1)
+    breaks <- seq(min(c(x),na.rm=TRUE),max(c(x),na.rm=TRUE),
+                  length=length(col)+1)
                       
   #print(variable)
   if ( (tolower(variable)=='precip') | (tolower(variable)=='tp') )
@@ -350,6 +354,7 @@ lonlatprojection <- function(x,it=NULL,is=NULL,xlim=NULL,ylim=NULL,
   if ( (par()$mfcol[1]> 1) | (par()$mfcol[2]> 1) ) new <- FALSE
       
   if (new) {
+    #dev.new()
     par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
         fig=c(0.05,0.95,0.12,0.95),mar=rep(1,4))
   } else {
@@ -381,19 +386,22 @@ lonlatprojection <- function(x,it=NULL,is=NULL,xlim=NULL,ylim=NULL,
     text(lon[length(lon)],lat[length(lat)] + dlat,period,pos=2,cex=0.7,col="grey30")
   if (!is.null(method))
     text(lon[length(lon)],lat[1] - dlat,method,col="grey30",pos=2,cex=0.7)
-  if (new) {
-    par(fig = c(0.3, 0.7, 0.05, 0.10),mar=rep(0,4),cex=0.8,
-        new = TRUE, mar=c(1,0,0,0), xaxt = "s",yaxt = "n",bty = "n")
+  if (colorbar) {
+    image.plot(horizontal=TRUE,legend.only=TRUE,zlim=range(x,na.rm=TRUE),
+               col=col,legend.width=1,axis.args=list(cex.axis=0.8),
+               border=FALSE,add=TRUE,graphics.reset=TRUE)
+#    par(fig = c(0.3, 0.7, 0.05, 0.10),mar=rep(0,4),cex=0.8,
+#        new = TRUE, mar=c(1,0,0,0), xaxt = "s",yaxt = "n",bty = "n")
   #print("colourbar")
-    bar <- cbind(breaks,breaks)
-    image(breaks,c(1,2),bar,col=col,breaks=breaks)
+#    bar <- cbind(breaks,breaks)
+#    image(breaks,c(1,2),bar,col=col,breaks=breaks)
   
 #    par(bty="n",xaxt="n",yaxt="n",xpd=FALSE,
 #        fig=c(0.05,0.95,0.12,0.95),new=TRUE)
 #    plot(range(lon),range(lat),type="n",xlab="",ylab="")
-    par(fig=par0$fig,new = TRUE, mar=par0$mar, xaxt = "n",yaxt = "n",bty = 'n')
-    plot(range(lon),range(lat),type="n",xlab="",ylab="",
-         xlim=xlim,ylim=ylim)
+#    par(fig=par0$fig,new = TRUE, mar=par0$mar, xaxt = "n",yaxt = "n",bty = 'n')
+#    plot(range(lon),range(lat),type="n",xlab="",ylab="",
+#         xlim=xlim,ylim=ylim)
   }
   
   result <- list(x=lon,y=lat,z=x,breaks=breaks)
@@ -463,8 +471,8 @@ map.cca <- function(x,it=NULL,is=NULL,new=TRUE,icca=1,xlim=NULL,ylim=NULL,
                     what=c("fill","contour"),
                     n=15,projection="lonlat",
                     lonR=NULL,latR=NULL,
-                    axiR=0,gridlines=FALSE,col=NULL,breaks=NULL,...) {
-  print('map.cca')
+                    axiR=0,gridlines=TRUE,col=NULL,breaks=NULL,...) {
+  #print('map.cca')
   #x <- subset(x,it=it,is=is)
 
   # For plotting, keep the same kind of object, but replace the patterns in
@@ -496,7 +504,7 @@ map.cca <- function(x,it=NULL,is=NULL,new=TRUE,icca=1,xlim=NULL,ylim=NULL,
 #  map(X,icca,xlim=xlim,ylim=ylim,what=what,
 #      projection=projection,lonR=lonR,latR=latR,axiR=axiR,
 #      gridlines=gridlines,col=col,breaks=breaks,FUN='mean')
-  print('Need to fix breaks and map.station')
+#  print('Need to fix breaks and map.station')
 
 #  col <- rgb( c(rep(0,15),1-sqrt(seq(0,1,length=15))),
 #              abs(sin(seq(0,pi,length=30))),

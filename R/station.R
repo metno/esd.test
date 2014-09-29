@@ -3,32 +3,15 @@
 ## reppresented in terms of PCA, maintaining the spatial consistencies between them.
 ## It is also possible to use a set of station objects to provide multi-information from
 ## one location: e.g. T(2m), precip; mean, variance, skewness, & kurtosis...
-
 ## Major updates : A. Mezghani 29.07.2013 ; 29.08.2013 ; 03.09.2013 ; 25.09.2013 ; 18.10.2013
 ## station.metno(ok) ; station.nordklim(ok) ; station.nacd(ok) ; station.ecad(ok) ; station.narp(in progress) ; station.ghcnm(ok) ; station.ghcnd(almost done - checking for t2m)  
-require(zoo)
-
+## require(zoo)
 ## ecad (updated) , 
-
 ## This function is used to check wether there are errors in the programming !
-test.station <- function(ss=NULL,stid=NULL,alt=NULL,lat=c(50,70),lon=c(0,30),param="precip",src=c("GHCND","GHCNM","NORDKLIM","NACD","METNOM","METNOD","ECAD"),verbose=FALSE) {
-    for (i in 1:length(src)) {
-        y <- station(stid=stid,alt=alt,lat=lat,lon=lon,param=param,src=src[i],nmin=100,verbose=verbose)
-        print(summary(y))
-    }
-}
+
 
 ## Define methods
 station <- function(stid=NULL,...) UseMethod("station")
-
-## station.metnod <- function(...) UseMethod("station.metnod")
-## station.ecad <- function(...) UseMethod("station.ecad")
-## station.ghcnd <- function(...) UseMethod("station.ghcnd")
-## station.nacd <- function(...) UseMethod("station.nacd")
-## station.narp <- function(...) UseMethod("station.narp")
-## station.nordklim <- function(...) UseMethod("station.nordklim")
-## station.metnom <- function(...) UseMethod("station.metnom")
-## station.ghcnm <- function(...) UseMethod("station.ghcnm")
 
 station.ecad <- function(...) {
     ## 
@@ -131,7 +114,6 @@ station.default <- function(loc=NULL, param="t2m",src = NULL, path=NULL, qual=NU
     PATH <- path
     URL <- url
     
-    ## 
     ## Select one or a set of stations based on the metadata
     if (is.null(ss)) { 
         ss <- select.station(stid=stid,loc=loc,lon=lon,lat=lat,alt=alt,cntr=cntr,param=param,src=src,it=it,nmin=nmin) # AM-29.07.2013 "loc" added into the arguments 
@@ -214,9 +196,9 @@ station.default <- function(loc=NULL, param="t2m",src = NULL, path=NULL, qual=NU
                 print("Warning : No values found in the time series -> This station will be ignored")
                 x <- NULL
             }
-            if (!is.null(x)) X <- combine.stations(X,x)
+            ## if (!is.null(x)) X <- combine.stations(X,x)
         } else if (src[i]=="ECAD") { #AM-29.07.2013 added "|(src[i]=="ECAD")"
-            ## 
+            
             if (is.null(path.ecad)) path <- paste("data.",toupper(src[i]),sep="") else path <- path.ecad ## default path
             if (is.null(url.ecad)) url="http://www.ecad.eu/utils/downloadfile.php?file=download/ECA_blend" else url <- url.ecad ## default url
             x <- ecad.station(stid=stid[i],lon=lon[i],lat=lat[i],alt=alt[i],loc=loc[i],cntr=cntr[i],qual=qual[i],param=param[i],verbose=verbose,path=path, url=url)
@@ -310,7 +292,7 @@ station.default <- function(loc=NULL, param="t2m",src = NULL, path=NULL, qual=NU
         }
         if (i==1)
             X <- x
-        else
+        else if (!is.null(x))
             X <- combine.stations(X,x)
     }
     ## 
@@ -433,7 +415,7 @@ ecad.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL
     ## additional attributes
     attr(ECAD,'history') <- c(match.call(),date())
     attr(ECAD,'history') <- history.stamp(ECAD)
-    ## class(ECAD) <- c("station","day","zoo")
+    class(ECAD) <- c("station","day","zoo")
     invisible(ECAD)
 }
 
@@ -455,9 +437,7 @@ nacd.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL
     if (is.null(stid)) return(NULL) ## AM 26.08.2013 added
 
     ele <- esd2ele(param=param)
-                                        #  ele.c<-switch(tolower(param),'t2m'='101','tg'='101','rr'='601','slp'='401','cloud'='801','t2'='101','precip'='601','101'='101','401'='401','601'='601','801'='801')
-
-    ## 
+    ##  ele.c<-switch(tolower(param),'t2m'='101','tg'='101','rr'='601','slp'='401','cloud'='801','t2'='101','precip'='601','101'='101','401'='401','601'='601','801'='801')
     ## load("esd/data/NACD.rda")
     data("NACD")
     loc <- gsub("-",".",loc) # AM replace.char() replaced by gsub()
@@ -506,8 +486,8 @@ nacd.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL
                                         # Add meta data as attributes:
 
     unit <- switch(ele,
-                   '101'='degree Celsius','111'='degree Celsius',
-                   '112'='degree Celsius','122'='degree Celsius',
+                   '101'='degC','111'='degCelsius',
+                   '112'='degC','122'='degree Celsius',
                    '401'='hPa', '601'='mm','701'='days','801'='%')
     
     NACD <- as.station(NACD, stid=stid, loc=loc, cntr=cntr, lon=lon, lat=lat, alt=alt,
@@ -520,7 +500,7 @@ nacd.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL
     ## Additional attributes
     attr(NACD,'history') <- c(match.call(),date())
     attr(NACD,'history') <- history.stamp(NACD)
-    ## class(NACD) <- c("station","month","zoo")
+    class(NACD) <- c("station","month","zoo")
     invisible(NACD)
 }
 
@@ -562,7 +542,7 @@ narp.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL
     ## Additional attributes
     attr(NARP,'history') <- c(match.call(),date())
     attr(NARP,'history') <- history.stamp(NARP)
-    ## class(NARP) <- c("station","month","zoo")
+    class(NARP) <- c("station","month","zoo")
     invisible(NARP)
 }
 
@@ -611,7 +591,7 @@ nordklim.station <- function(stid=NULL,loc=NULL,lon=NULL,lat=NULL,alt=NULL,cntr=
     attr(NORDKLIM,'call') <- match.call()
     attr(NORDKLIM,'history') <- c(match.call(),date())
     attr(NORDKLIM,'history') <- history.stamp(NORDKLIM)
-    ## class(NORDKLIM) <- c("station","month","zoo")
+    class(NORDKLIM) <- c("station","month","zoo")
     invisible(NORDKLIM)
 }
 
@@ -653,7 +633,7 @@ ghcnm.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NUL
     ## attr(GHCNM,'call') <- match.call()
     attr(GHCNM,'history') <- c(match.call(),date())
     attr(GHCNM,'history') <- history.stamp(GHCNM)
-    ## class(GHCNM) <- c("station","month","zoo")
+    class(GHCNM) <- c("station","month","zoo")
     invisible(GHCNM)
 }
 
@@ -711,7 +691,7 @@ ghcnd.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NUL
     attr(GHCND,'call') <- match.call()
     attr(GHCND,'history') <- c(match.call(),date())
     attr(GHCND,'history') <- history.stamp(GHCND)
-    ## class(GHCND) <- c("station","day","zoo")
+    class(GHCND) <- c("station","day","zoo")
     invisible(GHCND)
 }
 
@@ -719,17 +699,14 @@ ghcnd.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NUL
 ## and two derivative functions that are station.metnod() and station.metnom() for daily and monthly velues, respectively.
 ## Author : A. Mezghani
 ## adapted from stnr() function 
-metnom.station <-  function(re=15,stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL,qual=NULL,
-                            start=NULL,end=NULL,param=NULL,verbose=FALSE, h = NULL, nmt = 0,
-                            path = NULL, dup = "A", url = "http://klapp/metnopub/production/") {
+metnom.station <-  function(re=15,stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL,qual=NULL,start=NULL,end=NULL,param=NULL,verbose=FALSE, h = NULL, nmt = 0,path = NULL, dup = "A", url = "http://klapp/metnopub/production/") {
     
-    y <- metno.station(re=re,stid=stid,lon=lon,lat=lat,loc=loc,alt=alt,cntr=cntr,qual=qual,
-                       start=start,end=end,param=param,verbose=verbose,h = h, nmt = nmt,
-                       path = path, dup = dup, url = url)
+    y <- metno.station(re=re,stid=stid,lon=lon,lat=lat,loc=loc,alt=alt,cntr=cntr,qual=qual,start=start,end=end,param=param,verbose=verbose,h = h, nmt = nmt,path = path, dup = dup, url = url)
     if (!is.null(y))
         attr(y,"source") <- "METNOM"
     invisible(y)
 }
+
 metnod.station <-  function(re=14, ...) {
     ## 
     y <- metno.station(re=re,...)
@@ -737,9 +714,9 @@ metnod.station <-  function(re=14, ...) {
         attr(y,"source") <- "METNOD"
     invisible(y)
 }
+
 metno.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NULL,qual=NULL,start=NULL,end=NULL,param=NULL,verbose=FALSE, re = 14,h = NULL, nmt = 0,  path = NULL, dup = "A", url = "http://klapp/metnopub/production/") {
     if (verbose) print("http://eklima.met.no")
-    
     ## if (!is.na(end)) end1 <- format(Sys.time(),'%d.%m.%Y')
     if (!is.na(end)) end1 <-format(as.Date(paste("31.12.",as.character(end),sep=""),format='%d.%m.%Y'),'%d.%m.%Y')
     if (!is.na(start)) start1 <- format(as.Date(paste("01.01.",as.character(start),sep=""),format='%d.%m.%Y'),'%d.%m.%Y')
@@ -797,25 +774,29 @@ metno.station <- function(stid=NULL,lon=NULL,lat=NULL,loc=NULL,alt=NULL,cntr=NUL
     invisible(METNO)
 }
 
-
-
+test.station <- function(ss=NULL,stid=NULL,alt=NULL,lat=c(50,70),lon=c(0,30),param="precip",src=c("GHCND","GHCNM","NORDKLIM","NACD","METNOM","METNOD","ECAD"),verbose=FALSE) {
+    for (i in 1:length(src)) {
+        y <- station(stid=stid,alt=alt,lat=lat,lon=lon,param=param,src=src[i],nmin=100,verbose=verbose)
+        print(summary(y))
+    }
+}
 stnr <- function (navn = NULL, lon = NULL, lat = NULL, max.dist = 10, 
-                  alt = NULL, Fylke = NULL, Kommune = NULL, fy = NULL, ty = NULL, 
-                  ny = NULL, param = "TAM", plot = FALSE, print = FALSE) 
+    alt = NULL, Fylke = NULL, Kommune = NULL, fy = NULL, ty = NULL, 
+    ny = NULL, param = "TAM", plot = FALSE, print = FALSE) 
 {
     met.no.meta <- MET.no.meta(param = param, print = print)
     iue <- nchar(met.no.meta$TODATE) == 2
     met.no.meta$TODATE[iue] <- now()
     i9c <- (nchar(met.no.meta$TODATE) == 9)
     met.no.meta$TODATE[i9c] <- paste("0", met.no.meta$TODATE[i9c], 
-                                     sep = "")
+        sep = "")
     nyrs <- as.numeric(substr(met.no.meta$TODATE, 7, 10)) -
-        as.numeric(substr(met.no.meta$FROMDATE, 7, 10)) + 1
+            as.numeric(substr(met.no.meta$FROMDATE, 7, 10)) + 1
     if (!is.null(ny)) {
         keep <- (nyrs >= ny) & (is.finite(nyrs))
         print(summary(nyrs))
         print(paste("Only stations with", ny, "years of data:", 
-                    sum(keep), "in total"))
+            sum(keep), "in total"))
         met.no.meta <- met.no.meta[keep, ]
     }
     met.no.meta$Lon[!is.finite(met.no.meta$Lon)] <- -90
@@ -838,24 +819,24 @@ stnr <- function (navn = NULL, lon = NULL, lat = NULL, max.dist = 10,
             if (plot) 
                 points(lon, lat, pch = "+", col = "blue", cex = 0.7)
             d <- round(distAB(lon,lat,met.no.meta$Lon, met.no.meta$Lat)/1000, 
-                       3)
+                3)
             print(length(d))
             ii <- II[(d <= max.dist)]
             print(rbind(met.no.meta$Navn[ii], met.no.meta$Stnr[ii], 
-                        met.no.meta$Lon[ii], met.no.meta$Lat[ii], d[ii]))
+                met.no.meta$Lon[ii], met.no.meta$Lat[ii], d[ii]))
         }
         else if (length(lon) == 2) {
             if (plot) 
                 polygon(c(lon[1], lon[2], lon[2], lon[1], lon[1]), 
-                        c(lat[1], lat[1], lat[2], lat[2], lat[1]), 
-                        border = "blue", lwd = 2)
+                  c(lat[1], lat[1], lat[2], lat[2], lat[1]), 
+                  border = "blue", lwd = 2)
             if (length(lat) == 1) 
                 stop("both or none of lon/lat must have two entries")
             ii <- II[(met.no.meta$Lon >= min(lon)) & (met.no.meta$Lon <= 
-                          max(lon)) & (met.no.meta$Lat >= min(lat)) & (met.no.meta$Lat <= 
-                                           max(lat))]
+                max(lon)) & (met.no.meta$Lat >= min(lat)) & (met.no.meta$Lat <= 
+                max(lat))]
             print(rbind(met.no.meta$Navn[ii], met.no.meta$Stnr[ii], 
-                        met.no.meta$Lon[ii], met.no.meta$Lat[ii]))
+                met.no.meta$Lon[ii], met.no.meta$Lat[ii]))
             met.no.meta <- met.no.meta[ii, ]
         }
     }
@@ -864,10 +845,10 @@ stnr <- function (navn = NULL, lon = NULL, lat = NULL, max.dist = 10,
             if (alt > 0) 
                 ii <- (met.no.meta$Hoh >= alt) & is.finite(met.no.meta$Hoh)
             else ii <- (met.no.meta$Hoh <= abs(alt)) &
-                is.finite(met.no.meta$Hoh)
+            is.finite(met.no.meta$Hoh)
         }
         else ii <- (met.no.meta$Hoh >= min(alt)) & (met.no.meta$Hoh <= 
-                        max(alt))
+            max(alt))
         ii[is.na(met.no.meta$Stnr[ii])] <- FALSE
         print(rbind(met.no.meta$Navn[ii], met.no.meta$Stnr[ii],
                     met.no.meta$Hoh[ii]))
@@ -877,19 +858,19 @@ stnr <- function (navn = NULL, lon = NULL, lat = NULL, max.dist = 10,
         ii <- is.element(upper.case(met.no.meta$Fylke), upper.case(Fylke))
         print(rbind(met.no.meta$Navn[ii], met.no.meta$Stnr[ii],
                     met.no.meta$Fylke[ii], 
-                    met.no.meta$Kommune[ii]))
+            met.no.meta$Kommune[ii]))
         met.no.meta <- met.no.meta[ii, ]
     }
     if (!is.null(Kommune)) {
         ii <- is.element(upper.case(met.no.meta$Kommune), upper.case(Kommune))
         print(rbind(met.no.meta$Navn[ii], met.no.meta$Stnr[ii],
                     met.no.meta$Fylke[ii], 
-                    met.no.meta$Kommune[ii]))
+            met.no.meta$Kommune[ii]))
         met.no.meta <- met.no.meta[ii, ]
     }
     if (plot) {
         points(met.no.meta$Lon, met.no.meta$Lat, pch = 19, col = "red", 
-               cex = 0.6)
+            cex = 0.6)
         text(met.no.meta$Lon, met.no.meta$Lat, met.no.meta$Stnr, cex = 0.5)
     }
     invisible(met.no.meta)
@@ -898,10 +879,10 @@ stnr <- function (navn = NULL, lon = NULL, lat = NULL, max.dist = 10,
 
 MET.no.meta <- function (param = "TAM", print = FALSE) {
     url <- paste("http://klapp/metnopub/production/metno?re=27&ct=text/plain&del=semicolon&tab=T_ELEM_MONTH&p=", 
-                 param, "&geo=lat&geo=utm&geo=amsl&geo=name&geo=cnr&geo=muni&nod=NA", 
-                 sep = "")
+        param, "&geo=lat&geo=utm&geo=amsl&geo=name&geo=cnr&geo=muni&nod=NA", 
+        sep = "")
     dnmi.meta <- read.table(url, header = TRUE, sep = ";", as.is = TRUE, 
-                            fileEncoding = "latin1")
+        fileEncoding = "latin1")
     if (print) {
         print(url)
         print(summary(dnmi.meta))
@@ -923,15 +904,15 @@ replace.char <- function (c, s, ny.c)  {
     is <- 1
     tries <- instring(c, s)
     if (length(tries)==0) return(s)
-                                        #print(nc)
+    #print(nc)
     while ( (instring(c, s)[1] > 0) & (is <= length(tries)) ) {        
         ii <- instring(c, s)[1]
-                                        #print(ii); print(c);print(s)
+        #print(ii); print(c);print(s)
         if (ii > 1) {
             s <- paste(substr(s, 1, ii - 1), ny.c,
                        substr(s, ii + nc, nchar(s)), sep = "")
         } else if (ii==1) s <- paste(ny.c,
-                       substr(s, ii + nc + 1, nchar(s)), sep = "")
+                     substr(s, ii + nc + 1, nchar(s)), sep = "")
         is <- is + 1
     }
     s

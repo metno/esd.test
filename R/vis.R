@@ -3,6 +3,30 @@
 vis <- function(x,...) UseMethod("vis")
 
 vis.station <- function(x,...) {
+  if (is.precip(x)) vis.station.precip(x,...) else
+  if (is.T(x)) vis.station.t2m(x,...)
+}
+
+vis.station.precip <- function(x,p=c(seq(0.1,0.95,0.05),0.97,0.98,0.99),...) {
+  # From qqplotter:
+  qp <- apply(coredata(x),2,quantile,prob=p,na.rm=TRUE)
+  qmu <- -log(1-p)%o%apply(coredata(x),2,wetmean)
+  fw <- round(100*apply(coredata(x),2,wetfreq))
+  plot(qp,qmu,pch=19,col=rgb(0,0,1,0.2))
+  lines(range(qp,qmu),range(qp,qmu))
+  grid()
+}
+
+vis.station.t2m <- function(x,p=c(0.01,0.02,0.03,0.04,seq(0.1,0.95,0.05),
+                                0.97,0.98,0.99),...) {
+  qp <- apply(coredata(x),2,quantile,prob=p,na.rm=TRUE)
+  qmu <- qp + NA
+  for (i in 1:dim(qmu)[1])
+    qmu[i,] <- qnorm(p=p[i],mean=apply(coredata(x),2,mean,na.rm=TRUE),
+                     sd=apply(coredata(x),2,sd,na.rm=TRUE))
+  plot(qp,qmu,pch=19,col=rgb(1,0,0,0.2))
+  lines(range(qp,qmu),range(qp,qmu))
+  grid() 
 }
 
 vis.field <- function(x,...) {

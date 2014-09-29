@@ -55,8 +55,10 @@ DSensemble.t2m <- function(y,plot=TRUE,path="CMIP5.monthly/",
   
 
 #  yr <- as.4seasons(ya,FUN=ltp)
-  if (!is.na(attr(y,'longitude'))) lon <- round( attr(y,'longitude') + lon )
-  if (!is.na(attr(y,'latitude'))) lat <- round( attr(y,'latitude') + lat )
+  if (!is.na(attr(y,'longitude')))
+    lon <- round( range(attr(y,'longitude'),na.rm=TRUE) + lon )
+  if (!is.na(attr(y,'latitude')))
+    lat <- round( range(attr(y,'latitude'),na.rm=TRUE) + lat )
   #lon <- round( attr(y,'longitude') + lon )
   #lat <- round( attr(y,'latitude') + lat )
 
@@ -390,8 +392,10 @@ DSensemble.precip <- function(y,plot=TRUE,path="CMIP5.monthly/",
   #browser()
   index(y) <- year(y)
   
-  if (!is.na(attr(y,'longitude'))) lon <- round( attr(y,'longitude') + lon )
-  if (!is.na(attr(y,'latitude'))) lat <- round( attr(y,'latitude') + lat )
+  if (!is.na(attr(y,'longitude')))
+    lon <- round( range(attr(y,'longitude'),na.rm=TRUE) + lon )
+  if (!is.na(attr(y,'latitude')))
+    lat <- round( range(attr(y,'latitude'),na.rm=TRUE) + lat )
   
   # Get the predictor: ERA40
   if (verbose) print("predictor")

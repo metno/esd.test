@@ -6,7 +6,7 @@ write.ncdf <- function(x,file,...)
 
 write.ncdf.station <- function(x,file,prec='short',offs=0, missval=NA,
                                scalf=0.1,torg='1899-12-31',verbose=FALSE) {
-  require(ncdf4)
+  #require(ncdf4)
 
   if (!inherits(x,"station")) stop('x argument must be a station object') 
   

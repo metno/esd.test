@@ -60,6 +60,7 @@ annual.default <- function(x,FUN='mean',na.rm=TRUE, nmin=NULL,...) {
   yr <- year(x)
   nmo <- length(levels(factor(month(x))))
   d <- dim(x)
+  if(is.null(d)) d <- c(length(x),1)
   #print(table(yr))
   YR <- as.numeric(rownames(table(yr)))
   nyr <- as.numeric(table(yr))

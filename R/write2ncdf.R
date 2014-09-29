@@ -6,7 +6,7 @@ save2ncdf <- function(x,file,...)
 
 save2ncdf.station <- function(x,file,prec='short',missval=-99.9,offs=0,
                                scalf=0.1,torg='1899-12-31',verbose=FALSE) {
-  require(ncdf4)
+  #require(ncdf4)
   if (verbose) print('save2ncdf.station')
   
 # Save a station object as a netCDF file using the short-type combined with add_offset and scale_factor

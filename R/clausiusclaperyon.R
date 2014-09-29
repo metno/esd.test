@@ -25,3 +25,57 @@ C.C.eq <- function(x) {
   attr(e.s,'history') <- history.stamp(x)
   return(e.s)
 }
+
+precip.vul <- function(x) {
+  pv <- round(wetmean(x)/wetfreq(x))
+  pv
+}
+
+t2m.vul <- function(x,x0=30,is=1) {
+  tv <- mean(subset(spell(x,threshold=x0),is=is))
+  tv
+}
+
+precip.rv <- function(x,tau=10) {
+   rv <- -log( 1/(tau*365.25*wetfreq(x))) * wetmean(x)
+   rv
+}
+
+nv <- function(x) sum(is.finite(x))
+
+precip.Pr <- function(x,x0=10) {
+  # Pr(X > x)
+  mu <- wetmean(x)
+  fw <- wetfreq(x)
+  Pr <- fw*exp(-x0/mu)
+  attr(Pr,'variable') <- paste('Pr(X>',x0,'mm/day)')
+  attr(Pr,'unit') <- 'fraction'
+  attr(Pr,'x0') <- x0
+  attr(Pr,'size') <- nv(x)
+  Pr
+}
+
+t2m.Pr <- function(x,x0=10,na.rm=TRUE) {
+    Pr <- 1-pnorm(x0,mean=mean(x,na.rm=na.rm),
+                         sd=sd(x,na.rm=na.rm))
+  # fix some house-keeping attributes:
+   attr(Pr,'variable') <- paste('Pr(X>',x0,'deg C)')
+   attr(Pr,'unit') <- 'fraction'
+   attr(Pr,'x0') <- x0
+   attr(Pr,'size') <- nv(x)
+   Pr 
+}
+
+NE <- function(p) {
+  nel <- qbinom(p=0.05,
+                size=attr(p,'size'),prob=p)
+  nem <- qbinom(p=0.5,
+                   size=attr(p,'size'),prob=p)
+  neh <- qbinom(p=0.95,
+                   size=attr(p,'size'),prob=p)
+  ne <- c(nel,nem,neh)
+  attr(ne,'variable') <- paste('N(X>',x0,'mm/day)')
+  attr(ne,'unit') <- 'days'
+  ne
+}
+

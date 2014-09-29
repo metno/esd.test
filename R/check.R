@@ -11,10 +11,7 @@
 ## source("esd/R/frequency.R")
 
 check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FALSE - AM 22-10-2013 not used any more ! 
-    browser()
-    ## Load library
-    library(ncdf4)
-    
+           
     ## Checking : Number of variables and select only one from the netcdf file, get variable attributes in v1. The user should decide between the list of variables
     if (tolower(param) == "auto") {
         if (ncid$nvars > 1) {
@@ -28,8 +25,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
         v1 <- NULL
         v1 <- eval(parse(text=paste("ncid$var$",param,sep="")))
         if (is.null(v1)) stop(paste("Variable ",param," could not be found !",sep=""))
-    }
-    ## Checking : Variable dimensions ...
+    }    ## Checking : Variable dimensions ...
     ndims <- eval(parse(text=paste("ncid$var$",param,"$ndims",sep="")))
     dimnames <- rep(NA,ndims)
     if (ndims>0) {
@@ -47,36 +43,38 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
     ## Update CMIP3 attributes to match those of CMIP5 
     mnames <- names(model)
     history <- ncatt_get(ncid,0,"history")
-    ## browser()
-    if (ncatt_get(ncid,0,"project_id")$hasatt) {
-        if (model$project_id=="IPCC Fourth Assessment") {
-            model$project_id <- "CMIP3"
-            if (verbose) print("project_id IPCC Fourth Assessment set to CMIP3")
-        }
-    } else if (length(grep("sres",tolower(history$value)))>0) model$project_id <- "CMIP3"
-    else if (length(grep("rcp",tolower(history$value)))>0) model$project_id <- "CMIP5"
-    else {if (verbose) print("project_id is missing from file attributes")}
     
-    if (!ncatt_get(ncid,0,"model_id")$hasatt & ncatt_get(ncid,0,"project_id")$hasatt) {   
-        hist2 <- unlist(strsplit(history$value,split=c(" ")))
-        ih <- grep("tas",hist2)
-        if (model$project_id=="CMIP3") {
-            txt <- hist2[ih[1]] 
-            model$model_id <- cmip3.model_id(txt)
+    if (history$value!=0) {
+        if (ncatt_get(ncid,0,"project_id")$hasatt) {
+            if (model$project_id=="IPCC Fourth Assessment") {
+                model$project_id <- "CMIP3"
+                if (verbose) print("project_id IPCC Fourth Assessment set to CMIP3")
+            }
+        } else if (length(grep("sres",tolower(history$value)))>0) model$project_id <- "CMIP3"
+        else if (length(grep("rcp",tolower(history$value)))>0) model$project_id <- "CMIP5"
+        else {if (verbose) print("project_id is missing from file attributes")}
+        
+        if (!ncatt_get(ncid,0,"model_id")$hasatt & ncatt_get(ncid,0,"project_id")$hasatt) {   
+            hist2 <- unlist(strsplit(history$value,split=c(" ")))
+            ih <- grep("tas",hist2)
+            if (model$project_id=="CMIP3") {
+                txt <- hist2[ih[1]] 
+                model$model_id <- cmip3.model_id(txt)
+            }
+            else if (model$project_id=="CMIP5") {
+                txt <- hist2[ih[2]]
+                model$model_id <- cmip5.model_id(txt)
+            }
         }
-        else if (model$project_id=="CMIP5") {
-            txt <- hist2[ih[2]]
-            model$model_id <- cmip5.model_id(txt)
+        ## print(ncatt_get(ncid,0,"project_id")$hasatt)
+        if (ncatt_get(ncid,0,"experiment_id")$hasatt & ncatt_get(ncid,0,"project_id")$hasatt) {
+            if (tolower(model$project_id)=="cmip3") {
+                txt <- unlist(strsplit(tolower(ncatt_get(ncid,0,"history")$value),split="/"))
+                model$experiment_id <- paste(txt[grep("20c3m",txt)],txt[grep("sres",txt)],sep="-")
+            }
         }
     }
-    ## print(ncatt_get(ncid,0,"project_id")$hasatt)
-    if (ncatt_get(ncid,0,"experiment_id")$hasatt & ncatt_get(ncid,0,"project_id")$hasatt) {
-        if (tolower(model$project_id)=="cmip3") {
-            txt <- unlist(strsplit(tolower(ncatt_get(ncid,0,"history")$value),split="/"))
-            model$experiment_id <- paste(txt[grep("20c3m",txt)],txt[grep("sres",txt)],sep="-")
-        }
-    }
-    ## browser()
+    
     if (ncatt_get(ncid,0,"title")$hasatt) {
         title <- ncatt_get(ncid,0,"title")$value
         modelid <- unlist(strsplit(title,split=c(" ")))
@@ -86,7 +84,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
     }
     
     ## END CMIP3 MODEL NAMES UPDATE
-    ## browser()
+    
     ## Checking : Time unit and origin
     ## Get system info
     a <- Sys.info()
@@ -173,7 +171,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
     }
 
     if (!is.null(torigin)) {if (verbose) print("Checking Time Origin --> [ok]")} else if (verbose) print("Checking Time Origin --> [fail]")
-    ##browser()
+    
     ## Checking : Frequency
     type <- c("year","season","months","Days","Hours","minutes","seconds")
     type.abb <- substr(tolower(type),1,3)
@@ -191,7 +189,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
         if (verbose) print("Checking Frequency from attribute --> [fail]")
         if (verbose) print("Frequency has not been found in the attributes") 
     }
-    ## browser()
+    
     ## Checking frequency from data
     frequency <- freq.data <- NULL
     freq.data <- frequency.data(data=as.vector(time$vals),unit=tunit,verbose=FALSE)
@@ -214,7 +212,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
         dorigin <- as.numeric(format.Date(torigin,format="%d"))
     }
     ## Get calendar from attribute if any and create vector of dates vdate
-    browser()
+  
     if (!is.null(calendar.att)) {
         if (grepl("gregorian",calendar.att) | grepl("standard",calendar.att)) {
             if (grepl("min",tunit)) time$vdate <- as.Date((time$vals/(24*60)),origin=as.Date(torigin))
@@ -266,7 +264,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
     } else {
         if (verbose) print("warnings : Automatic detection of the calendar")
         calendar.detect <- "auto"
-        ## browser()                                    # NOT COMPLETE ...
+        ## NOT COMPLETE add 3h ...
         if (grepl("sec",tunit)) time$vdate <- as.Date((time$vals/(24*3600)),origin=as.Date(torigin))
         if (grepl("hou",tunit)) time$vdate <- as.Date((time$vals/24),origin=as.Date(torigin))
         if (grepl("day",tunit)) time$vdate <- as.Date((time$vals),origin=as.Date(torigin))   
@@ -281,7 +279,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
     if ((length(time$vdate)>0) & (sum(diff(as.numeric(format.Date(time$vdate,"%m")))>1)) & (verbose)) stop("Vector date is mangeled ! Need extra check !")
     ## Checking the data / Extra checks / Automatic calendar detection / etc.
     ## Check 1 # Regular frequency
-    ## browser()
+    
     if (!is.null(time$vdate)) dt <- as.numeric(rownames(table(diff(time$vdate)))) else dt <- NULL
     if (!is.null(time$vdate)) {
         if (verbose) print("Vector of date is in the form :")
@@ -317,7 +315,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
             if (verbose) print(paste(as.character(dt),tunit,sep=" "))
         }
     }
-    ##browser()
+    
     ## End check 1
     ## Begin check 2 if freq.att matches freq.data
     if (!is.null(freq.att)) {
@@ -329,7 +327,7 @@ check.ncdf4 <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = F
             } else warnings("Frequency found in the attribute does not match the frequency detected in data")
         } 
     } else if (!is.null(freq.data)) model$frequency <- freq.data
-    else stop("Frequency could not be found, neither detected, the data might be corrupted !")
+    else print("There might be sth wrong with the frequency, please double check !")
     
     if (!is.null(model$frequency)) {
         if (verbose) print(paste("Frequency set to ",model$frequency,sep=""))
@@ -388,37 +386,39 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
     ## Update CMIP3 attributes to match those of CMIP5 
     mnames <- names(model)
     history <- att.get.ncdf(ncid,0,"history")
-    ## browser()
-    if (att.get.ncdf(ncid,0,"project_id")$hasatt) {
-        model$project_id <- att.get.ncdf(ncid,0,"project_id")$value
-        if (model$project_id=="IPCC Fourth Assessment") {
-            model$project_id <- "CMIP3"
-            if (verbose) print("project_id IPCC Fourth Assessment set to CMIP3")
-        }
-    } else if (length(grep("sres",tolower(history$value)))>0) model$project_id <- "CMIP3"
-    else if (length(grep("rcp",tolower(history$value)))>0) model$project_id <- "CMIP5"
-    else {if (verbose) print("project_id is missing from file attributes")}
-    
-    if (!att.get.ncdf(ncid,0,"model_id")$hasatt & att.get.ncdf(ncid,0,"project_id")$hasatt) {   
-        hist2 <- unlist(strsplit(history$value,split=c(" ")))
-        ih <- grep("tas",hist2)
-        if (model$project_id=="CMIP3") {
-            txt <- hist2[ih[1]] 
-            model$model_id <- cmip3.model_id(txt)
-        }
-        else if (model$project_id=="CMIP5") {
-            txt <- hist2[ih[2]]
-            model$model_id <- cmip5.model_id(txt)
+   
+    if (history$value !=0) {
+        if (att.get.ncdf(ncid,0,"project_id")$hasatt) {
+            model$project_id <- att.get.ncdf(ncid,0,"project_id")$value
+            if (model$project_id=="IPCC Fourth Assessment") {
+                model$project_id <- "CMIP3"
+                if (verbose) print("project_id IPCC Fourth Assessment set to CMIP3")
+            }
+        } else if (length(grep("sres",tolower(history$value)))>0) model$project_id <- "CMIP3"
+        else if (length(grep("rcp",tolower(history$value)))>0) model$project_id <- "CMIP5"
+        else {if (verbose) print("project_id is missing from file attributes")}
+        
+        if (!att.get.ncdf(ncid,0,"model_id")$hasatt & att.get.ncdf(ncid,0,"project_id")$hasatt) {   
+            hist2 <- unlist(strsplit(history$value,split=c(" ")))
+            ih <- grep("tas",hist2)
+            if (model$project_id=="CMIP3") {
+                txt <- hist2[ih[1]] 
+                model$model_id <- cmip3.model_id(txt)
+            }
+            else if (model$project_id=="CMIP5") {
+                txt <- hist2[ih[2]]
+                model$model_id <- cmip5.model_id(txt)
+            }
         }
     }
     ## print(ncatt_get(ncid,0,"project_id")$hasatt)
     if (att.get.ncdf(ncid,0,"experiment_id")$hasatt & att.get.ncdf(ncid,0,"project_id")$hasatt) {
         if (tolower(model$project_id)=="cmip3") {
-            txt <- unlist(strsplit(tolower(att.get.ncdf(ncid,0,"history")$value),split="/"))
+            if (!is.null(history) & !is.null(att.get.ncdf(ncid,0,"history")$value)) txt <- unlist(strsplit(tolower(att.get.ncdf(ncid,0,"history")$value),split="/"))
             model$experiment_id <- paste(txt[grep("20c3m",txt)],txt[grep("sres",txt)],sep="-")
         }
     }
-    ## browser()
+    
     if (att.get.ncdf(ncid,0,"title")$hasatt) {
         title <- att.get.ncdf(ncid,0,"title")$value
         modelid <- unlist(strsplit(title,split=c(" ")))
@@ -429,7 +429,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
     }
     
     ## END CMIP3 MODEL NAMES UPDATE
-    ## browser()
+    
     ## Checking : Time unit and origin
     ## Get system info
     a <- Sys.info()
@@ -516,7 +516,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
     }
 
     if (!is.null(torigin)) {if (verbose) print("Checking Time Origin --> [ok]")} else if (verbose) print("Checking Time Origin --> [fail]")
-    ##browser()
+   
     ## Checking : Frequency
     type <- c("year","season","months","Days","Hours","minutes","seconds")
     type.abb <- substr(tolower(type),1,3)
@@ -534,7 +534,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
         if (verbose) print("Checking Frequency from attribute --> [fail]")
         if (verbose) print("Frequency has not been found in the attributes") 
     }
-    ## browser()
+    
     ## Checking frequency from data
     frequency <- freq.data <- NULL
     freq.data <- frequency.data(data=as.vector(time$vals),unit=tunit,verbose=FALSE)
@@ -557,7 +557,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
         dorigin <- as.numeric(format.Date(torigin,format="%d"))
     }
     ## Get calendar from attribute if any and create vector of dates vdate
-    ## browser()
+   
     if (!is.null(calendar.att)) {
         if (grepl("gregorian",calendar.att) | grepl("standard",calendar.att)) {
             if (grepl("min",tunit)) time$vdate <- as.Date((time$vals/(24*60)),origin=as.Date(torigin))
@@ -609,7 +609,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
     } else {
         if (verbose) print("warnings : Automatic detection of the calendar")
         calendar.detect <- "auto"
-        ## browser()                                    # NOT COMPLETE ...
+                                 # NOT COMPLETE ...
         if (grepl("hou",tunit)) time$vdate <- as.Date((time$vals/24),origin=as.Date(torigin))
         if (grepl("day",tunit)) time$vdate <- as.Date((time$vals),origin=as.Date(torigin))   
         if (grepl("mon",tunit)) {
@@ -623,7 +623,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
     if ((length(time$vdate)>0) & (sum(diff(as.numeric(format.Date(time$vdate,"%m")))>1)) & (verbose)) stop("Vector date is mangeled ! Need extra check !")
     ## Checking the data / Extra checks / Automatic calendar detection / etc.
     ## Check 1 # Regular frequency
-    ## browser()
+   
     if (!is.null(time$vdate)) dt <- as.numeric(rownames(table(diff(time$vdate)))) else dt <- NULL
     if (!is.null(time$vdate)) {
         if (verbose) print("Vector of date is in the form :")
@@ -659,7 +659,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
             if (verbose) print(paste(as.character(dt),tunit,sep=" "))
         }
     }
-    ##browser()
+    
     ## End check 1
     ## Begin check 2 if freq.att matches freq.data
     if (!is.null(freq.att)) {
@@ -671,7 +671,7 @@ check.ncdf <- function(ncid, param="auto",verbose = FALSE) { ## use.cdfcont = FA
             } else warnings("Frequency found in the attribute does not match the frequency detected in data")
         } 
     } else if (!is.null(freq.data)) model$frequency <- freq.data
-    else stop("Frequency could not be found, neither detected, the data might be corrupted !")
+    else print("There might be sth wrong with the frequency of the data, please double check !")
     
     if (!is.null(model$frequency)) {
         if (verbose) print(paste("Frequency set to ",model$frequency,sep=""))
