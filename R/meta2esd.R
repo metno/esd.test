@@ -63,10 +63,10 @@ meta2esd <- function(path="~",force=FALSE,save=FALSE,backup=FALSE,verbose=FALSE)
     load("metnom.meta.rda")  
 
   ## NACD Rda META FILE 
-  ## if (!file.exists(file.path(path,"nacd.meta.rda")) | force)    ## NACD Rda META FILE from clim.pact
-    data("NACD",envir=environment()) ; nacd.meta <- NACD ## nacd.meta ! not yet created 
-  ##else
-  ##  load(file.path(path,"nacd.meta.rda"),envir=environment())
+  if (!file.exists(file.path(path,"nacd.meta.rda")) | force)    ## NACD Rda META FILE from clim.pact
+    {data("NACD",envir=environment()) ; nacd.meta <- NACD} ## nacd.meta ! not yet created 
+  else
+    load(file.path(path,"nacd.meta.rda"),envir=environment())
 
   ## NARP Rda META FILE 
   if (!file.exists(file.path(path,"narp.meta.rda")) | force)    ## NARP rda META FILE from clim.pact
@@ -103,13 +103,12 @@ meta2esd <- function(path="~",force=FALSE,save=FALSE,backup=FALSE,verbose=FALSE)
   n.metnod <- length(metnod.meta$station_id)
   
   n.ghcnd <- length(ghcnd.meta$station_id)
-1  nacd.lon <- (nacd.meta$degE + nacd.meta$minE/60)*ifelse(as.character(nacd.meta$E.W)==" E",1,-1)
+  nacd.lon <- (nacd.meta$degE + nacd.meta$minE/60)*ifelse(as.character(nacd.meta$E.W)==" E",1,-1)
   nacd.lat <- nacd.meta$degN + nacd.meta$minN/60 
   
-  nacd.cn <- as.character(nacd.meta$country)
+  nacd.cn <- gsub(" ","",as.character(nacd.meta$country)) ## AM 17-09-2014 bug fixed - remove extra spaces ...
   nacd.cn[is.element(nacd.cn,'FR')] <- 'FRI'
   ##r.script <- readLines("meta2esd.R")
-  browser()
   ##  data("observation.meta",envir=environment()
   station.meta <- list(
                        station_id=as.character(c(nacd.meta$station.number,narp.meta$stnr,nordklim.meta$station_id,ecad.meta$station_id,ghcnm.meta$station_id,ghcnd.meta$station_id,metnom.meta$station_id,metnod.meta$station_id)),
@@ -141,8 +140,9 @@ meta2esd <- function(path="~",force=FALSE,save=FALSE,backup=FALSE,verbose=FALSE)
         "http://eca.knmi.nl/",
         "https://dokit.met.no/klima/userservices/urlinterface/brukerdok",
         "https://dokit.met.no/klima/userservices/urlinterface/brukerdok")
-  station.meta$call <- match.call()
+  ## station.meta$call <- match.call()
   invisible(station.meta)
+  save(station.meta,file=file.path("station.meta.rda"))
 }
 
 decryptcn <- function(codes,src="ECAD") {
